@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     # database settings
     DATABASE_URL_POSTGRES: str
+    DATABASE_ECHO: bool = False  # True para ver el SQL generado en consola
 
     # security settings
     SECRET_KEY: str
