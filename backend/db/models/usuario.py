@@ -1,0 +1,40 @@
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from backend.db.session import Base
+
+if TYPE_CHECKING:
+    from backend.db.models.auditoria_log import AuditoriaLog
+    from backend.db.models.establecimiento import Establecimiento
+    from backend.db.models.rol import Rol
+
+
+class Usuario(Base):
+    """Personal administrativo y de salud."""
+
+    __tablename__ = "usuario"
+
+    id_usuario: Mapped[int] = mapped_column(primary_key=True)
+    rut: Mapped[str] = mapped_column(String(12), unique=True)
+    nombre: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(120), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    id_rol: Mapped[int] = mapped_column(ForeignKey("rol.id_rol"))
+    id_establecimiento: Mapped[int] = mapped_column(
+        ForeignKey("establecimiento.id_establecimiento")
+    )
+
+    rol: Mapped["Rol"] = relationship(back_populates="usuarios", lazy="selectin")
+    establecimiento: Mapped["Establecimiento"] = relationship(
+        back_populates="usuarios",
+        lazy="selectin",
+    )
+    auditorias: Mapped[list["AuditoriaLog"]] = relationship(
+        back_populates="usuario",
+        lazy="selectin",
+    )
+
+    def __repr__(self) -> str:
+        return f"<Usuario id={self.id_usuario} rut={self.rut!r}>"
