@@ -16,6 +16,7 @@ from backend.api.v1.schemas.requerimiento_oirs import (
     EstadoRequerimiento,
     RequerimientoOirsBase,
     RequerimientoOirsCreate,
+    RequerimientoOirsPublicoResponse,
     RequerimientoOirsResponse,
     RequerimientoOirsUpdate,
 )
@@ -40,6 +41,7 @@ __all__ = [
     "ORMModel",
     "RequerimientoOirsBase",
     "RequerimientoOirsCreate",
+    "RequerimientoOirsPublicoResponse",
     "RequerimientoOirsResponse",
     "RequerimientoOirsUpdate",
     "RolBase",

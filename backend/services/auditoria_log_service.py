@@ -13,7 +13,7 @@ class AuditoriaLogService:
         self.repo = AuditoriaLogRepository(db)
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[AuditoriaLog]:
-        return list(await self.repo.get_all(skip=skip, limit=limit))
+        return await self.repo.get_all(skip=skip, limit=limit)
 
     async def get(self, log_id: int) -> AuditoriaLog:
         log = await self.repo.get(log_id)
@@ -26,9 +26,17 @@ class AuditoriaLogService:
     ) -> list[AuditoriaLog]:
         return await self.repo.get_by_usuario(usuario_id, skip=skip, limit=limit)
 
+    async def get_by_establecimiento(
+        self, establecimiento_id: int, skip: int = 0, limit: int = 100
+    ) -> list[AuditoriaLog]:
+        return await self.repo.get_by_establecimiento(
+            establecimiento_id, skip=skip, limit=limit
+        )
+
     async def registrar(self, data: AuditoriaLogCreate) -> AuditoriaLog:
         log = AuditoriaLog(
             id_usuario=data.id_usuario,
+            id_establecimiento=data.id_establecimiento,
             accion=data.accion,
             ip_origen=str(data.ip_origen) if data.ip_origen else None,
         )

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.session import Base
@@ -15,6 +15,10 @@ class Usuario(Base):
     """Personal administrativo y de salud."""
 
     __tablename__ = "usuario"
+    __table_args__ = (
+        Index("idx_usuario_rol", "id_rol"),
+        Index("idx_usuario_establecimiento", "id_establecimiento"),
+    )
 
     id_usuario: Mapped[int] = mapped_column(primary_key=True)
     rut: Mapped[str] = mapped_column(String(12), unique=True)

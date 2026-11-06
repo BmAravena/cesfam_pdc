@@ -5,11 +5,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.v1.schemas.requerimiento_oirs import (
     RequerimientoOirsCreate,
+    RequerimientoOirsPublicoResponse,
     RequerimientoOirsUpdate,
 )
-from backend.db.models.requerimiento_oirs import RequerimientoOirs
+from backend.db.models.auditoria_log import AuditoriaLog
+from backend.db.models.requerimiento_oirs import (
+    ESTADOS_REQUERIMIENTO,
+    RequerimientoOirs,
+)
+from backend.db.models.usuario import Usuario
 from backend.db.repositories.requerimiento_oirs_repo import (
     RequerimientoOirsRepository,
+)
+from backend.services.authz import (
+    puede_acceder_establecimiento,
+    tiene_alcance_global,
 )
 
 DIAS_HABILES_PLAZO = 15  # Ley N° 20.584
@@ -55,6 +65,43 @@ class RequerimientoOirsService:
     ) -> list[RequerimientoOirs]:
         return await self.repo.get_by_estado(estado, skip=skip, limit=limit)
 
+    async def get_publico(self, codigo: str) -> RequerimientoOirsPublicoResponse:
+        """Consulta pública por código. No expone detalle_solicitud (PII)."""
+        requerimiento = await self.repo.get_by_codigo(codigo)
+        if requerimiento is None:
+            raise ValueError("Código de seguimiento no encontrado")
+        return RequerimientoOirsPublicoResponse.model_validate(requerimiento)
+
+    async def listar_autorizado(
+        self,
+        usuario: Usuario,
+        establecimiento_id: int | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[RequerimientoOirs]:
+        """Lista requerimientos según el alcance del rol del usuario."""
+        nombre_rol = usuario.rol.nombre_rol
+
+        if establecimiento_id is not None:
+            if not puede_acceder_establecimiento(
+                nombre_rol,
+                usuario.id_establecimiento,
+                establecimiento_id,
+            ):
+                raise PermissionError(
+                    "No tiene acceso a requerimientos de ese establecimiento"
+                )
+            return await self.repo.get_by_establecimiento(
+                establecimiento_id, skip=skip, limit=limit
+            )
+
+        if tiene_alcance_global(nombre_rol):
+            return list(await self.repo.get_all(skip=skip, limit=limit))
+
+        return await self.repo.get_by_establecimiento(
+            usuario.id_establecimiento, skip=skip, limit=limit
+        )
+
     async def create(self, data: RequerimientoOirsCreate) -> RequerimientoOirs:
         codigo = data.codigo_seguimiento or await self._generar_codigo()
         if await self.repo.get_by_codigo(codigo):
@@ -83,9 +130,53 @@ class RequerimientoOirsService:
         requerimiento = await self.get(requerimiento_id)
         cambios = data.model_dump(exclude_unset=True)
 
+        if "estado" in cambios:
+            raise ValueError(
+                "El estado debe cambiarse con cambiar_estado() para registrar auditoría"
+            )
+
         for campo, valor in cambios.items():
             setattr(requerimiento, campo, valor)
 
+        return await self.repo.update(requerimiento)
+
+    async def cambiar_estado(
+        self,
+        requerimiento_id: int,
+        nuevo_estado: str,
+        *,
+        id_usuario: int | None = None,
+        id_establecimiento: int | None = None,
+        ip_origen: str | None = None,
+    ) -> RequerimientoOirs:
+        """Cambia el estado y registra el log en la misma transacción."""
+        if nuevo_estado not in ESTADOS_REQUERIMIENTO:
+            raise ValueError(f"Estado inválido: {nuevo_estado}")
+
+        requerimiento = await self.get(requerimiento_id)
+        estado_anterior = requerimiento.estado
+        if estado_anterior == nuevo_estado:
+            raise ValueError(f"El requerimiento ya está en estado '{nuevo_estado}'")
+
+        requerimiento.estado = nuevo_estado
+
+        # Convención de accion: "<ACCION> req=<id> <anterior>-><nuevo>"
+        log = AuditoriaLog(
+            id_usuario=id_usuario,
+            id_establecimiento=(
+                id_establecimiento
+                if id_establecimiento is not None
+                else requerimiento.id_establecimiento
+            ),
+            accion=(
+                f"CAMBIO_ESTADO req={requerimiento.id_requerimiento} "
+                f"{estado_anterior}->{nuevo_estado}"
+            ),
+            ip_origen=ip_origen,
+        )
+        self.db.add(log)
+
+        # flush() sube ambos cambios en la misma transacción (commit lo hace get_db)
         return await self.repo.update(requerimiento)
 
     async def delete(self, requerimiento_id: int) -> None:
@@ -93,9 +184,9 @@ class RequerimientoOirsService:
         await self.repo.delete(requerimiento)
 
     async def _generar_codigo(self) -> str:
-        """Formato OIRS-AAAAMMDD-XXXX (18 caracteres, cabe en VARCHAR(20))."""
+        """Formato OIRS-AAAAMMDD-XXXXXX (20 caracteres, VARCHAR(20))."""
         for _ in range(5):
-            codigo = f"OIRS-{date.today():%Y%m%d}-{secrets.token_hex(2).upper()}"
+            codigo = f"OIRS-{date.today():%Y%m%d}-{secrets.token_hex(3).upper()}"
             if await self.repo.get_by_codigo(codigo) is None:
                 return codigo
         raise ValueError("No se pudo generar un código de seguimiento único")

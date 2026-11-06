@@ -1,6 +1,14 @@
 """Servicios de negocio (un servicio por entidad)."""
 
 from backend.services.auditoria_log_service import AuditoriaLogService
+from backend.services.authz import (
+    ROL_ADMIN,
+    ROL_COMUNAL,
+    ROL_LOCAL,
+    ROLES_ALCANCE_GLOBAL,
+    puede_acceder_establecimiento,
+    tiene_alcance_global,
+)
 from backend.services.encuesta_satisfaccion_service import (
     EncuestaSatisfaccionService,
 )
@@ -20,10 +28,16 @@ __all__ = [
     "AuditoriaLogService",
     "EncuestaSatisfaccionService",
     "EstablecimientoService",
+    "ROL_ADMIN",
+    "ROL_COMUNAL",
+    "ROL_LOCAL",
+    "ROLES_ALCANCE_GLOBAL",
     "RequerimientoOirsService",
     "RolService",
     "UsuarioService",
     "hash_password",
+    "puede_acceder_establecimiento",
     "sumar_dias_habiles",
+    "tiene_alcance_global",
     "verify_password",
 ]

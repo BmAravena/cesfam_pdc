@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.db.session import Base
 
 if TYPE_CHECKING:
+    from backend.db.models.auditoria_log import AuditoriaLog
     from backend.db.models.encuesta_satisfaccion import EncuestaSatisfaccion
     from backend.db.models.requerimiento_oirs import RequerimientoOirs
     from backend.db.models.usuario import Usuario
@@ -29,6 +30,10 @@ class Establecimiento(Base):
         lazy="selectin",
     )
     encuestas: Mapped[list["EncuestaSatisfaccion"]] = relationship(
+        back_populates="establecimiento",
+        lazy="selectin",
+    )
+    auditorias: Mapped[list["AuditoriaLog"]] = relationship(
         back_populates="establecimiento",
         lazy="selectin",
     )

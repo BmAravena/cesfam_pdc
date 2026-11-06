@@ -52,5 +52,19 @@ class RequerimientoOirsResponse(RequerimientoOirsBase):
     id_requerimiento: int
     codigo_seguimiento: str
     estado: EstadoRequerimiento
-    fecha_ingreso: date | None
+    fecha_ingreso: date
+    fecha_limite: date
+
+
+class RequerimientoOirsPublicoResponse(ORMModel):
+    """Consulta pública por código: nunca expone detalle_solicitud.
+
+    El detalle puede contener datos personales que el ciudadano escribió
+    de forma voluntaria (nombre, RUT, email).
+    """
+
+    codigo_seguimiento: str
+    tipo_solicitud: str
+    estado: EstadoRequerimiento
+    fecha_ingreso: date
     fecha_limite: date
