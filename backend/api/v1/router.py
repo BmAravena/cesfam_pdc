@@ -1,8 +1,8 @@
-"""Agregador de routers de la API v1."""
+"""Agregador de endpoints de la API v1."""
 
 from fastapi import APIRouter
 
-from backend.api.v1.routers import (
+from backend.api.v1.endpoints import (
     auditoria,
     auth,
     encuestas,

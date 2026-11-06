@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.v1.schemas.requerimiento_oirs import (
+    RequerimientoEstadisticaItem,
     RequerimientoOirsCreate,
     RequerimientoOirsCreatePublico,
     RequerimientoOirsEstadoUpdate,
@@ -75,6 +76,25 @@ async def listar_requerimientos(
         skip=skip,
         limit=limit,
     )
+
+
+@router.get(
+    "/estadisticas",
+    response_model=list[RequerimientoEstadisticaItem],
+    summary="Métricas de cumplimiento por establecimiento",
+)
+async def estadisticas_requerimientos(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL))],
+) -> list[RequerimientoEstadisticaItem]:
+    """Solo Administrador y Encargado Comunal.
+
+    Agrupa por centro los requerimientos ingresados, en proceso,
+    respondidos, cerrados, rechazados y vencidos, e indica la tasa de
+    cumplimiento (porcentaje de requerimientos no vencidos).
+    """
+    filas = await RequerimientoOirsService(db).estadisticas()
+    return [RequerimientoEstadisticaItem(**fila) for fila in filas]
 
 
 @router.patch(

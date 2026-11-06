@@ -108,6 +108,17 @@ class RequerimientoOirsService:
             usuario.id_establecimiento, skip=skip, limit=limit
         )
 
+    async def estadisticas(self) -> list[dict]:
+        """Métricas por establecimiento con tasa de cumplimiento calculada."""
+        filas = await self.repo.estadisticas_por_establecimiento()
+        for fila in filas:
+            total = fila["total"] or 0
+            vencidos = fila["vencidos"] or 0
+            fila["tasa_cumplimiento"] = (
+                round(((total - vencidos) / total) * 100, 2) if total else 0.0
+            )
+        return filas
+
     async def create(self, data: RequerimientoOirsCreate) -> RequerimientoOirs:
         codigo = data.codigo_seguimiento or await self._generar_codigo()
         if await self.repo.get_by_codigo(codigo):

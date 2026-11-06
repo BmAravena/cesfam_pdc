@@ -76,3 +76,22 @@ class RequerimientoOirsPublicoResponse(ORMModel):
     estado: EstadoRequerimiento
     fecha_ingreso: date
     fecha_limite: date
+
+
+class RequerimientoEstadisticaItem(ORMModel):
+    """Métricas agregadas por establecimiento.
+
+    `vencidos` incluye solo requerimientos abiertos con fecha_limite pasada.
+    `tasa_cumplimiento` es el porcentaje de requerimientos no vencidos.
+    """
+
+    id_establecimiento: int
+    nombre_centro: str
+    total: int
+    ingresados: int
+    en_proceso: int
+    respondidos: int
+    cerrados: int
+    rechazados: int
+    vencidos: int
+    tasa_cumplimiento: float

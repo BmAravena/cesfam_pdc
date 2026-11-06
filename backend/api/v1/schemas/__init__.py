@@ -15,6 +15,7 @@ from backend.api.v1.schemas.establecimiento import (
 )
 from backend.api.v1.schemas.requerimiento_oirs import (
     EstadoRequerimiento,
+    RequerimientoEstadisticaItem,
     RequerimientoOirsBase,
     RequerimientoOirsCreate,
     RequerimientoOirsCreatePublico,
@@ -44,6 +45,7 @@ __all__ = [
     "EstablecimientoResponse",
     "EstablecimientoUpdate",
     "ORMModel",
+    "RequerimientoEstadisticaItem",
     "RequerimientoOirsBase",
     "RequerimientoOirsCreate",
     "RequerimientoOirsCreatePublico",
