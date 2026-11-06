@@ -3,6 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.v1.schemas.rol import RolCreate, RolUpdate
 from backend.db.models.rol import Rol
 from backend.db.repositories.rol_repo import RolRepository
+from backend.services.exceptions import (
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+)
 
 
 class RolService:
@@ -16,7 +21,7 @@ class RolService:
     async def get(self, rol_id: int) -> Rol:
         rol = await self.repo.get(rol_id)
         if rol is None:
-            raise ValueError(f"Rol {rol_id} no encontrado")
+            raise NotFoundError(f"Rol {rol_id} no encontrado")
         return rol
 
     async def get_by_nombre(self, nombre_rol: str) -> Rol | None:
@@ -24,7 +29,7 @@ class RolService:
 
     async def create(self, data: RolCreate) -> Rol:
         if await self.repo.get_by_nombre(data.nombre_rol):
-            raise ValueError(f"El rol '{data.nombre_rol}' ya existe")
+            raise ConflictError(f"El rol '{data.nombre_rol}' ya existe")
 
         rol = Rol(nombre_rol=data.nombre_rol, descripcion=data.descripcion)
         return await self.repo.create(rol)
@@ -36,7 +41,7 @@ class RolService:
         nuevo_nombre = cambios.get("nombre_rol")
         if nuevo_nombre and nuevo_nombre != rol.nombre_rol:
             if await self.repo.get_by_nombre(nuevo_nombre):
-                raise ValueError(f"El rol '{nuevo_nombre}' ya existe")
+                raise ConflictError(f"El rol '{nuevo_nombre}' ya existe")
 
         for campo, valor in cambios.items():
             setattr(rol, campo, valor)
@@ -46,5 +51,5 @@ class RolService:
     async def delete(self, rol_id: int) -> None:
         rol = await self.get(rol_id)
         if await self.repo.has_usuarios(rol_id):
-            raise ValueError("No se puede eliminar un rol con usuarios asignados")
+            raise BusinessRuleError("No se puede eliminar un rol con usuarios asignados")
         await self.repo.delete(rol)

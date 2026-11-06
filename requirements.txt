@@ -21,6 +21,7 @@ pydantic-settings==2.16.2
 pydantic_core==2.50.2
 python-dotenv==1.2.4
 python-jose==3.5.0
+python-multipart==0.0.33
 rsa==4.9.1
 six==1.17.0
 SQLAlchemy==2.1.6

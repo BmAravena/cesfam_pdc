@@ -7,6 +7,7 @@ from backend.db.models.encuesta_satisfaccion import EncuestaSatisfaccion
 from backend.db.repositories.encuesta_satisfaccion_repo import (
     EncuestaSatisfaccionRepository,
 )
+from backend.services.exceptions import NotFoundError
 
 
 class EncuestaSatisfaccionService:
@@ -20,7 +21,7 @@ class EncuestaSatisfaccionService:
     async def get(self, encuesta_id: int) -> EncuestaSatisfaccion:
         encuesta = await self.repo.get(encuesta_id)
         if encuesta is None:
-            raise ValueError(f"Encuesta {encuesta_id} no encontrada")
+            raise NotFoundError(f"Encuesta {encuesta_id} no encontrada")
         return encuesta
 
     async def get_by_establecimiento(
@@ -36,3 +37,8 @@ class EncuestaSatisfaccionService:
             datos_documento=data.datos_documento,
         )
         return await self.repo.create(encuesta)
+
+    async def reporte(
+        self, id_establecimiento: int | None = None
+    ) -> list[dict]:
+        return await self.repo.reporte_por_establecimiento(id_establecimiento)

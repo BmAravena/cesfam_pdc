@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.v1.schemas.auditoria_log import AuditoriaLogCreate
 from backend.db.models.auditoria_log import AuditoriaLog
 from backend.db.repositories.auditoria_log_repo import AuditoriaLogRepository
+from backend.services.exceptions import NotFoundError
 
 
 class AuditoriaLogService:
@@ -15,10 +16,24 @@ class AuditoriaLogService:
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[AuditoriaLog]:
         return await self.repo.get_all(skip=skip, limit=limit)
 
+    async def listar(
+        self,
+        id_usuario: int | None = None,
+        id_establecimiento: int | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[AuditoriaLog]:
+        return await self.repo.get_filtrado(
+            id_usuario=id_usuario,
+            id_establecimiento=id_establecimiento,
+            skip=skip,
+            limit=limit,
+        )
+
     async def get(self, log_id: int) -> AuditoriaLog:
         log = await self.repo.get(log_id)
         if log is None:
-            raise ValueError(f"Log {log_id} no encontrado")
+            raise NotFoundError(f"Log {log_id} no encontrado")
         return log
 
     async def get_by_usuario(

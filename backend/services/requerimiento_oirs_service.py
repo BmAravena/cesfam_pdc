@@ -21,6 +21,12 @@ from backend.services.authz import (
     puede_acceder_establecimiento,
     tiene_alcance_global,
 )
+from backend.services.exceptions import (
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+    PermissionDenied,
+)
 
 DIAS_HABILES_PLAZO = 15  # Ley N° 20.584
 
@@ -47,7 +53,7 @@ class RequerimientoOirsService:
     async def get(self, requerimiento_id: int) -> RequerimientoOirs:
         requerimiento = await self.repo.get(requerimiento_id)
         if requerimiento is None:
-            raise ValueError(f"Requerimiento {requerimiento_id} no encontrado")
+            raise NotFoundError(f"Requerimiento {requerimiento_id} no encontrado")
         return requerimiento
 
     async def get_by_codigo(self, codigo: str) -> RequerimientoOirs | None:
@@ -69,7 +75,7 @@ class RequerimientoOirsService:
         """Consulta pública por código. No expone detalle_solicitud (PII)."""
         requerimiento = await self.repo.get_by_codigo(codigo)
         if requerimiento is None:
-            raise ValueError("Código de seguimiento no encontrado")
+            raise NotFoundError("Código de seguimiento no encontrado")
         return RequerimientoOirsPublicoResponse.model_validate(requerimiento)
 
     async def listar_autorizado(
@@ -88,7 +94,7 @@ class RequerimientoOirsService:
                 usuario.id_establecimiento,
                 establecimiento_id,
             ):
-                raise PermissionError(
+                raise PermissionDenied(
                     "No tiene acceso a requerimientos de ese establecimiento"
                 )
             return await self.repo.get_by_establecimiento(
@@ -105,7 +111,7 @@ class RequerimientoOirsService:
     async def create(self, data: RequerimientoOirsCreate) -> RequerimientoOirs:
         codigo = data.codigo_seguimiento or await self._generar_codigo()
         if await self.repo.get_by_codigo(codigo):
-            raise ValueError(f"El código '{codigo}' ya existe")
+            raise ConflictError(f"El código '{codigo}' ya existe")
 
         fecha_ingreso = data.fecha_ingreso or date.today()
         fecha_limite = data.fecha_limite or sumar_dias_habiles(
@@ -131,7 +137,7 @@ class RequerimientoOirsService:
         cambios = data.model_dump(exclude_unset=True)
 
         if "estado" in cambios:
-            raise ValueError(
+            raise BusinessRuleError(
                 "El estado debe cambiarse con cambiar_estado() para registrar auditoría"
             )
 
@@ -151,12 +157,12 @@ class RequerimientoOirsService:
     ) -> RequerimientoOirs:
         """Cambia el estado y registra el log en la misma transacción."""
         if nuevo_estado not in ESTADOS_REQUERIMIENTO:
-            raise ValueError(f"Estado inválido: {nuevo_estado}")
+            raise BusinessRuleError(f"Estado inválido: {nuevo_estado}")
 
         requerimiento = await self.get(requerimiento_id)
         estado_anterior = requerimiento.estado
         if estado_anterior == nuevo_estado:
-            raise ValueError(f"El requerimiento ya está en estado '{nuevo_estado}'")
+            raise BusinessRuleError(f"El requerimiento ya está en estado '{nuevo_estado}'")
 
         requerimiento.estado = nuevo_estado
 
@@ -189,4 +195,4 @@ class RequerimientoOirsService:
             codigo = f"OIRS-{date.today():%Y%m%d}-{secrets.token_hex(3).upper()}"
             if await self.repo.get_by_codigo(codigo) is None:
                 return codigo
-        raise ValueError("No se pudo generar un código de seguimiento único")
+        raise BusinessRuleError("No se pudo generar un código de seguimiento único")

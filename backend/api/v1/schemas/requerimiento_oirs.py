@@ -39,6 +39,14 @@ class RequerimientoOirsCreate(RequerimientoOirsBase):
         return self
 
 
+class RequerimientoOirsCreatePublico(RequerimientoOirsBase):
+    """Payload del endpoint público: no permite fijar estado, código ni fechas."""
+
+
+class RequerimientoOirsEstadoUpdate(ORMModel):
+    estado: EstadoRequerimiento
+
+
 class RequerimientoOirsUpdate(ORMModel):
     tipo_solicitud: str | None = Field(default=None, min_length=1, max_length=30)
     detalle_solicitud: str | None = Field(default=None, min_length=1)

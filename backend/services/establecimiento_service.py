@@ -6,6 +6,11 @@ from backend.api.v1.schemas.establecimiento import (
 )
 from backend.db.models.establecimiento import Establecimiento
 from backend.db.repositories.establecimiento_repo import EstablecimientoRepository
+from backend.services.exceptions import (
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+)
 
 
 class EstablecimientoService:
@@ -19,7 +24,7 @@ class EstablecimientoService:
     async def get(self, establecimiento_id: int) -> Establecimiento:
         establecimiento = await self.repo.get(establecimiento_id)
         if establecimiento is None:
-            raise ValueError(
+            raise NotFoundError(
                 f"Establecimiento {establecimiento_id} no encontrado"
             )
         return establecimiento
@@ -32,7 +37,7 @@ class EstablecimientoService:
 
     async def create(self, data: EstablecimientoCreate) -> Establecimiento:
         if await self.repo.get_by_nombre(data.nombre_centro):
-            raise ValueError(
+            raise ConflictError(
                 f"El establecimiento '{data.nombre_centro}' ya existe"
             )
 
@@ -51,7 +56,7 @@ class EstablecimientoService:
         nuevo_nombre = cambios.get("nombre_centro")
         if nuevo_nombre and nuevo_nombre != establecimiento.nombre_centro:
             if await self.repo.get_by_nombre(nuevo_nombre):
-                raise ValueError(f"El establecimiento '{nuevo_nombre}' ya existe")
+                raise ConflictError(f"El establecimiento '{nuevo_nombre}' ya existe")
 
         for campo, valor in cambios.items():
             setattr(establecimiento, campo, valor)
@@ -61,7 +66,7 @@ class EstablecimientoService:
     async def delete(self, establecimiento_id: int) -> None:
         establecimiento = await self.get(establecimiento_id)
         if await self.repo.has_asociados(establecimiento_id):
-            raise ValueError(
+            raise BusinessRuleError(
                 "No se puede eliminar un establecimiento con datos asociados"
             )
         await self.repo.delete(establecimiento)

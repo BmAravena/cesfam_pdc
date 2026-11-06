@@ -4,6 +4,7 @@ from backend.api.v1.schemas.usuario import UsuarioCreate, UsuarioUpdate
 from backend.core.security import hash_password, verify_password
 from backend.db.models.usuario import Usuario
 from backend.db.repositories.usuario_repo import UsuarioRepository
+from backend.services.exceptions import ConflictError, NotFoundError
 
 
 class UsuarioService:
@@ -17,7 +18,7 @@ class UsuarioService:
     async def get(self, usuario_id: int) -> Usuario:
         usuario = await self.repo.get(usuario_id)
         if usuario is None:
-            raise ValueError(f"Usuario {usuario_id} no encontrado")
+            raise NotFoundError(f"Usuario {usuario_id} no encontrado")
         return usuario
 
     async def get_by_email(self, email: str) -> Usuario | None:
@@ -28,9 +29,9 @@ class UsuarioService:
 
     async def create(self, data: UsuarioCreate) -> Usuario:
         if await self.repo.get_by_email(data.email):
-            raise ValueError("El email ya está registrado")
+            raise ConflictError("El email ya está registrado")
         if await self.repo.get_by_rut(data.rut):
-            raise ValueError("El RUT ya está registrado")
+            raise ConflictError("El RUT ya está registrado")
 
         usuario = Usuario(
             rut=data.rut,
@@ -53,12 +54,12 @@ class UsuarioService:
         nuevo_email = cambios.get("email")
         if nuevo_email and nuevo_email != usuario.email:
             if await self.repo.get_by_email(str(nuevo_email)):
-                raise ValueError("El email ya está registrado")
+                raise ConflictError("El email ya está registrado")
 
         nuevo_rut = cambios.get("rut")
         if nuevo_rut and nuevo_rut != usuario.rut:
             if await self.repo.get_by_rut(nuevo_rut):
-                raise ValueError("El RUT ya está registrado")
+                raise ConflictError("El RUT ya está registrado")
 
         for campo, valor in cambios.items():
             setattr(usuario, campo, valor)

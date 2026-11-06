@@ -45,6 +45,24 @@ class AuditoriaLogRepository(BaseRepository[AuditoriaLog]):
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
+    async def get_filtrado(
+        self,
+        id_usuario: int | None = None,
+        id_establecimiento: int | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[AuditoriaLog]:
+        query = select(AuditoriaLog).order_by(AuditoriaLog.timestamp.desc())
+        if id_usuario is not None:
+            query = query.where(AuditoriaLog.id_usuario == id_usuario)
+        if id_establecimiento is not None:
+            query = query.where(
+                AuditoriaLog.id_establecimiento == id_establecimiento
+            )
+        query = query.offset(skip).limit(limit)
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
     async def update(self, obj: AuditoriaLog) -> AuditoriaLog:
         raise PermissionError("auditoria_log es append-only: no se permite UPDATE")
 
