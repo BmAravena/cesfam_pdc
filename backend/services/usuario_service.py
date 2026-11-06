@@ -1,19 +1,9 @@
-from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.v1.schemas.usuario import UsuarioCreate, UsuarioUpdate
+from backend.core.security import hash_password, verify_password
 from backend.db.models.usuario import Usuario
 from backend.db.repositories.usuario_repo import UsuarioRepository
-
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
-
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    return pwd_context.verify(password, password_hash)
 
 
 class UsuarioService:

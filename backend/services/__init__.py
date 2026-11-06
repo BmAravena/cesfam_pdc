@@ -1,6 +1,7 @@
 """Servicios de negocio (un servicio por entidad)."""
 
 from backend.services.auditoria_log_service import AuditoriaLogService
+from backend.core.security import hash_password, verify_password
 from backend.services.authz import (
     ROL_ADMIN,
     ROL_COMUNAL,
@@ -18,11 +19,7 @@ from backend.services.requerimiento_oirs_service import (
     sumar_dias_habiles,
 )
 from backend.services.rol_service import RolService
-from backend.services.usuario_service import (
-    UsuarioService,
-    hash_password,
-    verify_password,
-)
+from backend.services.usuario_service import UsuarioService
 
 __all__ = [
     "AuditoriaLogService",

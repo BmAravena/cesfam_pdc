@@ -21,6 +21,7 @@ from backend.api.v1.schemas.requerimiento_oirs import (
     RequerimientoOirsUpdate,
 )
 from backend.api.v1.schemas.rol import RolBase, RolCreate, RolResponse, RolUpdate
+from backend.api.v1.schemas.token import Token, TokenPayload
 from backend.api.v1.schemas.usuario import (
     UsuarioBase,
     UsuarioCreate,
@@ -48,6 +49,8 @@ __all__ = [
     "RolCreate",
     "RolResponse",
     "RolUpdate",
+    "Token",
+    "TokenPayload",
     "UsuarioBase",
     "UsuarioCreate",
     "UsuarioResponse",
