@@ -1,6 +1,9 @@
-from sqlalchemy import select
+from sqlalchemy import exists, or_, select
 
+from backend.db.models.encuesta_satisfaccion import EncuestaSatisfaccion
 from backend.db.models.establecimiento import Establecimiento
+from backend.db.models.requerimiento_oirs import RequerimientoOirs
+from backend.db.models.usuario import Usuario
 from backend.db.repositories.base import BaseRepository
 
 
@@ -20,3 +23,19 @@ class EstablecimientoRepository(BaseRepository[Establecimiento]):
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())
+
+    async def has_asociados(self, establecimiento_id: int) -> bool:
+        query = select(
+            or_(
+                exists().where(
+                    Usuario.id_establecimiento == establecimiento_id
+                ),
+                exists().where(
+                    RequerimientoOirs.id_establecimiento == establecimiento_id
+                ),
+                exists().where(
+                    EncuestaSatisfaccion.id_establecimiento == establecimiento_id
+                ),
+            )
+        )
+        return bool(await self.db.scalar(query))

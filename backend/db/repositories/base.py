@@ -34,6 +34,11 @@ class BaseRepository(Generic[ModelT]):
         await self.db.refresh(obj)
         return obj
 
+    async def update(self, obj: ModelT) -> ModelT:
+        await self.db.flush()
+        await self.db.refresh(obj)
+        return obj
+
     async def delete(self, obj: ModelT) -> None:
         await self.db.delete(obj)
         await self.db.flush()

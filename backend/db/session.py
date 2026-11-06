@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -73,16 +74,28 @@ class Base(DeclarativeBase):
     pass
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependencia de FastAPI: entrega una sesión y garantiza su cierre."""
+@asynccontextmanager
+async def session_scope() -> AsyncGenerator[AsyncSession, None]:
+    """Transacción explícita: commit si todo va bien, rollback si falla.
+
+    Útil para scripts y tareas fuera de una request de FastAPI.
+    """
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
         except Exception:
             await session.rollback()
             raise
-        finally:
-            await session.close()
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Dependencia de FastAPI: una transacción por request.
+
+    El endpoint no debe hacer commit(); se confirma al terminar sin errores.
+    """
+    async with session_scope() as session:
+        yield session
 
 
 async def check_db_connection() -> bool:
