@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Index, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.session import Base
@@ -28,6 +29,17 @@ class Usuario(Base):
     id_rol: Mapped[int] = mapped_column(ForeignKey("rol.id_rol"))
     id_establecimiento: Mapped[int] = mapped_column(
         ForeignKey("establecimiento.id_establecimiento")
+    )
+    # Borrado lógico: los usuarios dados de baja se conservan para no perder
+    # la trazabilidad de auditoria_log ni liberar RUT/email.
+    activo: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        server_default=text("true"),
+    )
+    fecha_baja: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     rol: Mapped["Rol"] = relationship(back_populates="usuarios", lazy="selectin")

@@ -16,3 +16,20 @@ class UsuarioRepository(BaseRepository[Usuario]):
         query = select(Usuario).where(Usuario.rut == rut)
         result = await self.db.execute(query)
         return result.scalars().first()
+
+    async def get_usuarios(
+        self,
+        incluir_inactivos: bool = False,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Usuario]:
+        query = select(Usuario)
+        if not incluir_inactivos:
+            query = query.where(Usuario.activo.is_(True))
+        query = (
+            query.order_by(Usuario.id_usuario)
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await self.db.execute(query)
+        return list(result.scalars().all())

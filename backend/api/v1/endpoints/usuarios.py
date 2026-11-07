@@ -43,8 +43,13 @@ async def listar_usuarios(
     _: AdminUser,
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    incluir_inactivos: Annotated[bool, Query()] = False,
 ) -> list[UsuarioResponse]:
-    return await UsuarioService(db).get_all(skip=skip, limit=limit)
+    return await UsuarioService(db).get_all(
+        skip=skip,
+        limit=limit,
+        incluir_inactivos=incluir_inactivos,
+    )
 
 
 @router.post(
@@ -83,21 +88,25 @@ async def actualizar_usuario(
     usuario_id: int,
     data: UsuarioUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: AdminUser,
+    admin: AdminUser,
 ) -> UsuarioResponse:
+    # Un administrador no puede quitarse a sí mismo el acceso.
+    if data.activo is False and admin.id_usuario == usuario_id:
+        raise BusinessRuleError("No puede desactivar su propio usuario")
     return await UsuarioService(db).update(usuario_id, data)
 
 
 @router.delete(
     "/{usuario_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Eliminar un usuario (solo Administrador)",
+    summary="Dar de baja un usuario (solo Administrador)",
 )
 async def eliminar_usuario(
     usuario_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],
     admin: AdminUser,
 ) -> None:
+    """Borrado lógico: el usuario queda inactivo y no puede autenticarse."""
     # Evita que el administrador se elimine a sí mismo y pierda el acceso.
     if admin.id_usuario == usuario_id:
         raise BusinessRuleError("No puede eliminar su propio usuario")

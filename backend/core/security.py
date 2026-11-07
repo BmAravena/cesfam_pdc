@@ -89,7 +89,7 @@ async def get_current_user(
         raise CREDENTIALS_EXCEPTION from exc
 
     usuario = await UsuarioRepository(db).get(usuario_id)
-    if usuario is None:
+    if usuario is None or not usuario.activo:
         raise CREDENTIALS_EXCEPTION
     return usuario
 

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import EmailStr, Field
 
 from backend.api.v1.schemas.common import ORMModel
@@ -26,8 +28,12 @@ class UsuarioUpdate(ORMModel):
     password: str | None = Field(default=None, min_length=8, max_length=128)
     id_rol: int | None = Field(default=None, gt=0)
     id_establecimiento: int | None = Field(default=None, gt=0)
+    # Permite reactivar (true) o dar de baja lógica (false) un usuario.
+    activo: bool | None = None
 
 
 class UsuarioResponse(UsuarioBase):
     id_usuario: int
+    activo: bool
+    fecha_baja: datetime | None
     # Nunca se expone password_hash

@@ -1,10 +1,16 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.v1.schemas.usuario import UsuarioCreate, UsuarioUpdate
 from backend.core.security import hash_password, verify_password
 from backend.db.models.usuario import Usuario
 from backend.db.repositories.usuario_repo import UsuarioRepository
-from backend.services.exceptions import ConflictError, NotFoundError
+from backend.services.exceptions import (
+    BusinessRuleError,
+    ConflictError,
+    NotFoundError,
+)
 
 
 class UsuarioService:
@@ -12,8 +18,17 @@ class UsuarioService:
         self.db = db
         self.repo = UsuarioRepository(db)
 
-    async def get_all(self, skip: int = 0, limit: int = 100) -> list[Usuario]:
-        return list(await self.repo.get_all(skip=skip, limit=limit))
+    async def get_all(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        incluir_inactivos: bool = False,
+    ) -> list[Usuario]:
+        return await self.repo.get_usuarios(
+            incluir_inactivos=incluir_inactivos,
+            skip=skip,
+            limit=limit,
+        )
 
     async def get(self, usuario_id: int) -> Usuario:
         usuario = await self.repo.get(usuario_id)
@@ -51,6 +66,12 @@ class UsuarioService:
         if password is not None:
             cambios["password_hash"] = hash_password(password)
 
+        if "activo" in cambios:
+            if cambios["activo"] and not usuario.activo:
+                usuario.fecha_baja = None
+            elif cambios["activo"] is False and usuario.activo:
+                usuario.fecha_baja = datetime.now(timezone.utc)
+
         nuevo_email = cambios.get("email")
         if nuevo_email and nuevo_email != usuario.email:
             if await self.repo.get_by_email(str(nuevo_email)):
@@ -67,11 +88,20 @@ class UsuarioService:
         return await self.repo.update(usuario)
 
     async def delete(self, usuario_id: int) -> None:
+        """Baja lógica: conserva el registro y libera el acceso."""
         usuario = await self.get(usuario_id)
-        await self.repo.delete(usuario)
+        if not usuario.activo:
+            raise BusinessRuleError("El usuario ya está dado de baja")
+        usuario.activo = False
+        usuario.fecha_baja = datetime.now(timezone.utc)
+        await self.repo.update(usuario)
 
     async def authenticate(self, email: str, password: str) -> Usuario | None:
         usuario = await self.repo.get_by_email(email)
-        if usuario is None or not verify_password(password, usuario.password_hash):
+        if (
+            usuario is None
+            or not usuario.activo
+            or not verify_password(password, usuario.password_hash)
+        ):
             return None
         return usuario

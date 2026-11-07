@@ -53,9 +53,16 @@ dimensión que discrimina los datos entre sedes.
 | `password_hash` | `VARCHAR(255)` | NOT NULL | Hash argon2 de la contraseña |
 | `id_rol` | `INT` | FK → `rol`, NOT NULL | Rol asignado |
 | `id_establecimiento` | `INT` | FK → `establecimiento`, NOT NULL | Centro base del usuario |
+| `activo` | `BOOLEAN` | NOT NULL, DEFAULT `TRUE` | Borrado lógico: `FALSE` impide autenticarse |
+| `fecha_baja` | `TIMESTAMPTZ` | — | Fecha en que se dio de baja al usuario |
 
 **Propósito:** registra el personal administrativo y de salud autenticado, con
 su rol y centro base.
+
+**Borrado lógico:** `DELETE /api/v1/usuarios/{id}` no elimina la fila: marca
+`activo = FALSE` y registra `fecha_baja`. El usuario conserva su historial en
+`auditoria_log` y no puede autenticarse mientras esté inactivo. Se reactiva con
+`PATCH /api/v1/usuarios/{id}` enviando `{"activo": true}`.
 
 **RBAC multi-sede:** el centro es el *centro base*. Los roles con alcance
 global (`Administrador del Sistema`, `Encargado OIRS Comunal`) pueden operar

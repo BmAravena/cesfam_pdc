@@ -29,7 +29,10 @@ CREATE TABLE usuario (
     email VARCHAR(120) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     id_rol INT NOT NULL REFERENCES rol(id_rol) ON DELETE RESTRICT,
-    id_establecimiento INT NOT NULL REFERENCES establecimiento(id_establecimiento) ON DELETE RESTRICT
+    id_establecimiento INT NOT NULL REFERENCES establecimiento(id_establecimiento) ON DELETE RESTRICT,
+    -- Borrado lógico: el usuario se conserva para mantener la trazabilidad
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_baja TIMESTAMPTZ
 );
 
 -- 4. Tabla: requerimiento_oirs (Solicitudes ciudadanas con plazo legal de 15 días hábiles)
