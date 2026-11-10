@@ -13,7 +13,7 @@ import { UsuariosPage } from '../pages/private/UsuariosPage'
 import { ConsultaPage } from '../pages/public/ConsultaPage'
 import { NuevaSolicitudPage } from '../pages/public/NuevaSolicitudPage'
 import { PortalPage } from '../pages/public/PortalPage'
-import { GESTION_ROLES, PANEL_ROLES } from '../lib/roles'
+import { ADMIN_ONLY, GESTION_ROLES, PANEL_ROLES } from '../lib/roles'
 
 export const router = createBrowserRouter([
   {
@@ -41,10 +41,16 @@ export const router = createBrowserRouter([
               { index: true, element: <DashboardPage /> },
               { path: 'requerimientos', element: <RequerimientosPage /> },
               {
-                // Submódulos solo para roles con alcance global.
-                element: <RequireAuth allowedRoles={GESTION_ROLES} />,
+                // Gestión de usuarios: exclusivo del Administrador.
+                element: <RequireAuth allowedRoles={ADMIN_ONLY} />,
                 children: [
                   { path: 'usuarios', element: <UsuariosPage /> },
+                ],
+              },
+              {
+                // Auditoría: Administrador y Encargado Comunal.
+                element: <RequireAuth allowedRoles={GESTION_ROLES} />,
+                children: [
                   { path: 'auditoria', element: <AuditoriaPage /> },
                 ],
               },

@@ -15,3 +15,6 @@ export const PANEL_ROLES: readonly string[] = Object.values(ROLES)
 
 /** Roles con alcance global (pueden ver cualquier establecimiento). */
 export const GESTION_ROLES: readonly string[] = [ROLES.ADMIN, ROLES.COMUNAL]
+
+/** Módulos exclusivos del Administrador del Sistema. */
+export const ADMIN_ONLY: readonly string[] = [ROLES.ADMIN]

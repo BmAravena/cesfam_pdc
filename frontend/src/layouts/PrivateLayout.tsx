@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '../features/auth/useAuth'
 import { hasRole } from '../lib/auth'
-import { GESTION_ROLES } from '../lib/roles'
+import { ADMIN_ONLY, GESTION_ROLES } from '../lib/roles'
 
 interface NavItem {
   to: string
@@ -14,7 +14,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/panel', label: 'Panel', end: true },
   { to: '/panel/requerimientos', label: 'Requerimientos' },
-  { to: '/panel/usuarios', label: 'Usuarios', roles: GESTION_ROLES },
+  { to: '/panel/usuarios', label: 'Usuarios', roles: ADMIN_ONLY },
   { to: '/panel/auditoria', label: 'Auditoría', roles: GESTION_ROLES },
 ]
 
