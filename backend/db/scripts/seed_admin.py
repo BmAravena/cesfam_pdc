@@ -83,14 +83,15 @@ async def seed_admin(args: argparse.Namespace) -> None:
         rol = await db.get(Rol, args.rol)
         if rol is None:
             raise SystemExit(
-                f"No existe el rol {args.rol}. Ejecuta backend/db/scripts/insert.sql."
+                f"No existe el rol {args.rol}. "
+                "Ejecuta `alembic upgrade head` para cargar los datos base."
             )
 
         establecimiento = await db.get(Establecimiento, args.establecimiento)
         if establecimiento is None:
             raise SystemExit(
                 f"No existe el establecimiento {args.establecimiento}. "
-                "Ejecuta backend/db/scripts/insert.sql."
+                "Ejecuta `alembic upgrade head` para cargar los datos base."
             )
 
         usuario = await UsuarioService(db).create(data)
