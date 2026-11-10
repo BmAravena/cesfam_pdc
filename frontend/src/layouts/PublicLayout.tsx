@@ -47,6 +47,9 @@ export function PublicLayout() {
             <NavLink to="/" end className={navLinkClass}>
               Portal ciudadano
             </NavLink>
+            <NavLink to="/solicitud" className={navLinkClass}>
+              Ingresar requerimiento
+            </NavLink>
             <NavLink to="/consulta" className={navLinkClass}>
               Consultar estado
             </NavLink>
