@@ -51,3 +51,25 @@ export async function consultarSeguimiento(
   )
   return data
 }
+
+export interface ListarRequerimientosParams {
+  establecimiento_id?: number
+  skip?: number
+  limit?: number
+}
+
+/**
+ * GET /requerimientos — listado interno.
+ *
+ * El backend aplica el alcance del rol: un Funcionario Local solo recibe
+ * los requerimientos de su establecimiento; Administrador y Encargado
+ * Comunal reciben todos.
+ */
+export async function listarRequerimientos(
+  params: ListarRequerimientosParams = {},
+): Promise<RequerimientoResponse[]> {
+  const { data } = await api.get<RequerimientoResponse[]>('/requerimientos', {
+    params,
+  })
+  return data
+}
