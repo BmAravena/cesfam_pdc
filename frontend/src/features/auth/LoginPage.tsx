@@ -16,7 +16,7 @@ export function LoginPage() {
   const { isAuthenticated, login } = useAuth()
 
   const state = (location.state as LoginLocationState | null) ?? {}
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -31,7 +31,7 @@ export function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      const { access_token } = await loginRequest(username.trim(), password)
+      const { access_token } = await loginRequest(email.trim(), password)
       login(access_token)
       navigate(state.from ?? '/panel', { replace: true })
     } catch (requestError) {
@@ -94,20 +94,21 @@ export function LoginPage() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label
-              htmlFor="username"
+              htmlFor="email"
               className="mb-1.5 block text-sm font-medium text-slate-700"
             >
-              Usuario
+              Correo electrónico
             </label>
             <input
-              id="username"
+              id="email"
               name="username"
-              type="text"
+              type="email"
               required
-              autoComplete="username"
+              autoComplete="email"
               autoFocus
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              placeholder="nombre@cesfam.cl"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
           </div>
