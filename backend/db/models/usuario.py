@@ -26,9 +26,11 @@ class Usuario(Base):
     nombre: Mapped[str] = mapped_column(String(120))
     email: Mapped[str] = mapped_column(String(120), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    id_rol: Mapped[int] = mapped_column(ForeignKey("rol.id_rol"))
+    id_rol: Mapped[int] = mapped_column(
+        ForeignKey("rol.id_rol", ondelete="RESTRICT")
+    )
     id_establecimiento: Mapped[int] = mapped_column(
-        ForeignKey("establecimiento.id_establecimiento")
+        ForeignKey("establecimiento.id_establecimiento", ondelete="RESTRICT")
     )
     # Borrado lógico: los usuarios dados de baja se conservan para no perder
     # la trazabilidad de auditoria_log ni liberar RUT/email.

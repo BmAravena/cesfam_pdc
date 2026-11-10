@@ -1,4 +1,8 @@
 -- =========================================================================
+-- OBSOLETO: script de referencia histórica.
+-- La fuente de verdad del esquema es Alembic (alembic/versions/).
+-- Crear/actualizar la base con: alembic upgrade head
+-- =========================================================================
 -- SISTEMA OIRS - SALUD PADRE LAS CASAS
 -- Script DDL basado en el Modelo de Datos Relacional (ACID/RBAC) + Documental (JSONB)
 --

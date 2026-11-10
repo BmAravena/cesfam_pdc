@@ -62,7 +62,7 @@ class RequerimientoOirs(Base):
         server_default=text("false"),
     )
     id_establecimiento: Mapped[int] = mapped_column(
-        ForeignKey("establecimiento.id_establecimiento")
+        ForeignKey("establecimiento.id_establecimiento", ondelete="RESTRICT")
     )
 
     establecimiento: Mapped["Establecimiento"] = relationship(

@@ -26,7 +26,7 @@ class EncuestaSatisfaccion(Base):
 
     id_encuesta: Mapped[int] = mapped_column(primary_key=True)
     id_establecimiento: Mapped[int] = mapped_column(
-        ForeignKey("establecimiento.id_establecimiento")
+        ForeignKey("establecimiento.id_establecimiento", ondelete="RESTRICT")
     )
     fecha_respuesta: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

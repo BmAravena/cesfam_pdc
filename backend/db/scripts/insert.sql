@@ -1,3 +1,5 @@
+-- OBSOLETO: los datos base ahora vienen de la migración
+-- alembic/versions/0002_seed_base.py
 -- Insertar roles base del sistema
 INSERT INTO rol (id_rol, nombre_rol, descripcion) VALUES
 (1, 'Administrador del Sistema', 'Control total de la plataforma y configuraciones.'),
