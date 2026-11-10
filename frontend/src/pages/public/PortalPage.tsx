@@ -41,16 +41,16 @@ export function PortalPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                to="/consulta"
+                to="/solicitud"
                 className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50"
               >
-                Consultar estado
+                Ingresar requerimiento
               </Link>
               <Link
-                to="/login"
+                to="/consulta"
                 className="rounded-xl border border-white/30 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
               >
-                Acceso funcionarios
+                Consultar estado
               </Link>
             </div>
           </div>

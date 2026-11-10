@@ -11,6 +11,7 @@ import { DashboardPage } from '../pages/private/DashboardPage'
 import { RequerimientosPage } from '../pages/private/RequerimientosPage'
 import { UsuariosPage } from '../pages/private/UsuariosPage'
 import { ConsultaPage } from '../pages/public/ConsultaPage'
+import { NuevaSolicitudPage } from '../pages/public/NuevaSolicitudPage'
 import { PortalPage } from '../pages/public/PortalPage'
 import { GESTION_ROLES, PANEL_ROLES } from '../lib/roles'
 
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
         element: <PublicLayout />,
         children: [
           { index: true, element: <PortalPage /> },
+          { path: 'solicitud', element: <NuevaSolicitudPage /> },
           { path: 'consulta', element: <ConsultaPage /> },
           { path: 'login', element: <LoginPage /> },
         ],

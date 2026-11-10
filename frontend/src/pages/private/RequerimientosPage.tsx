@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export function RequerimientosPage() {
   return (
     <div className="space-y-6">
@@ -10,12 +12,12 @@ export function RequerimientosPage() {
             Bandeja de solicitudes, reclamos, sugerencias y felicitaciones.
           </p>
         </div>
-        <button
-          type="button"
+        <Link
+          to="/solicitud"
           className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
         >
           Nuevo requerimiento
-        </button>
+        </Link>
       </header>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
