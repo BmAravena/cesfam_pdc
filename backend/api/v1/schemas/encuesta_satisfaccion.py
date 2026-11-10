@@ -22,3 +22,17 @@ class EncuestaSatisfaccionResponse(ORMModel):
     id_establecimiento: int
     fecha_respuesta: datetime | None
     datos_documento: dict[str, Any]
+
+
+class EncuestaReporteItem(ORMModel):
+    """Métricas agregadas de satisfacción por establecimiento.
+
+    Los promedios son None cuando ninguna respuesta incluyó la clave
+    correspondiente como valor numérico en `datos_documento`.
+    """
+
+    id_establecimiento: int
+    total_respuestas: int
+    promedio_trato: float | None = None
+    promedio_tiempo_espera: float | None = None
+    promedio_calidad: float | None = None

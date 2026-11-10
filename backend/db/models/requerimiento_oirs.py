@@ -1,7 +1,16 @@
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, String, Text, func, text
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.session import Base
@@ -19,7 +28,10 @@ ESTADOS_REQUERIMIENTO = (
 
 
 class RequerimientoOirs(Base):
-    """Solicitud ciudadana con plazo legal de 15 días hábiles (Ley N° 20.584)."""
+    """Solicitud ciudadana con plazo legal de 15 días hábiles (Ley N° 20.584).
+
+    fecha_limite se calcula en el servicio, no en la base.
+    """
 
     __tablename__ = "requerimiento_oirs"
     __table_args__ = (
@@ -27,18 +39,20 @@ class RequerimientoOirs(Base):
             "estado IN ('Ingresado', 'En Proceso', 'Respondido', 'Cerrado', 'Rechazado')",
             name="ck_requerimiento_oirs_estado",
         ),
+        Index("idx_req_establecimiento", "id_establecimiento"),
+        Index("idx_req_estado_fecha", "estado", "fecha_ingreso"),
     )
 
     id_requerimiento: Mapped[int] = mapped_column(primary_key=True)
     codigo_seguimiento: Mapped[str] = mapped_column(String(20), unique=True)
     tipo_solicitud: Mapped[str] = mapped_column(String(30))
     detalle_solicitud: Mapped[str] = mapped_column(Text)
-    estado: Mapped[str | None] = mapped_column(
+    estado: Mapped[str] = mapped_column(
         String(30),
         default="Ingresado",
         server_default=text("'Ingresado'"),
     )
-    fecha_ingreso: Mapped[date | None] = mapped_column(
+    fecha_ingreso: Mapped[date] = mapped_column(
         Date,
         server_default=func.current_date(),
     )
@@ -48,7 +62,7 @@ class RequerimientoOirs(Base):
         server_default=text("false"),
     )
     id_establecimiento: Mapped[int] = mapped_column(
-        ForeignKey("establecimiento.id_establecimiento")
+        ForeignKey("establecimiento.id_establecimiento", ondelete="RESTRICT")
     )
 
     establecimiento: Mapped["Establecimiento"] = relationship(

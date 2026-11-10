@@ -3,6 +3,7 @@
 from backend.api.v1.schemas.auditoria_log import AuditoriaLogCreate, AuditoriaLogResponse
 from backend.api.v1.schemas.common import ORMModel
 from backend.api.v1.schemas.encuesta_satisfaccion import (
+    EncuestaReporteItem,
     EncuestaSatisfaccionCreate,
     EncuestaSatisfaccionResponse,
 )
@@ -14,12 +15,17 @@ from backend.api.v1.schemas.establecimiento import (
 )
 from backend.api.v1.schemas.requerimiento_oirs import (
     EstadoRequerimiento,
+    RequerimientoEstadisticaItem,
     RequerimientoOirsBase,
     RequerimientoOirsCreate,
+    RequerimientoOirsCreatePublico,
+    RequerimientoOirsEstadoUpdate,
+    RequerimientoOirsPublicoResponse,
     RequerimientoOirsResponse,
     RequerimientoOirsUpdate,
 )
 from backend.api.v1.schemas.rol import RolBase, RolCreate, RolResponse, RolUpdate
+from backend.api.v1.schemas.token import Token, TokenPayload
 from backend.api.v1.schemas.usuario import (
     UsuarioBase,
     UsuarioCreate,
@@ -30,6 +36,7 @@ from backend.api.v1.schemas.usuario import (
 __all__ = [
     "AuditoriaLogCreate",
     "AuditoriaLogResponse",
+    "EncuestaReporteItem",
     "EncuestaSatisfaccionCreate",
     "EncuestaSatisfaccionResponse",
     "EstadoRequerimiento",
@@ -38,14 +45,20 @@ __all__ = [
     "EstablecimientoResponse",
     "EstablecimientoUpdate",
     "ORMModel",
+    "RequerimientoEstadisticaItem",
     "RequerimientoOirsBase",
     "RequerimientoOirsCreate",
+    "RequerimientoOirsCreatePublico",
+    "RequerimientoOirsEstadoUpdate",
+    "RequerimientoOirsPublicoResponse",
     "RequerimientoOirsResponse",
     "RequerimientoOirsUpdate",
     "RolBase",
     "RolCreate",
     "RolResponse",
     "RolUpdate",
+    "Token",
+    "TokenPayload",
     "UsuarioBase",
     "UsuarioCreate",
     "UsuarioResponse",

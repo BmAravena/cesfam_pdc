@@ -39,6 +39,14 @@ class RequerimientoOirsCreate(RequerimientoOirsBase):
         return self
 
 
+class RequerimientoOirsCreatePublico(RequerimientoOirsBase):
+    """Payload del endpoint público: no permite fijar estado, código ni fechas."""
+
+
+class RequerimientoOirsEstadoUpdate(ORMModel):
+    estado: EstadoRequerimiento
+
+
 class RequerimientoOirsUpdate(ORMModel):
     tipo_solicitud: str | None = Field(default=None, min_length=1, max_length=30)
     detalle_solicitud: str | None = Field(default=None, min_length=1)
@@ -52,5 +60,38 @@ class RequerimientoOirsResponse(RequerimientoOirsBase):
     id_requerimiento: int
     codigo_seguimiento: str
     estado: EstadoRequerimiento
-    fecha_ingreso: date | None
+    fecha_ingreso: date
     fecha_limite: date
+
+
+class RequerimientoOirsPublicoResponse(ORMModel):
+    """Consulta pública por código: nunca expone detalle_solicitud.
+
+    El detalle puede contener datos personales que el ciudadano escribió
+    de forma voluntaria (nombre, RUT, email).
+    """
+
+    codigo_seguimiento: str
+    tipo_solicitud: str
+    estado: EstadoRequerimiento
+    fecha_ingreso: date
+    fecha_limite: date
+
+
+class RequerimientoEstadisticaItem(ORMModel):
+    """Métricas agregadas por establecimiento.
+
+    `vencidos` incluye solo requerimientos abiertos con fecha_limite pasada.
+    `tasa_cumplimiento` es el porcentaje de requerimientos no vencidos.
+    """
+
+    id_establecimiento: int
+    nombre_centro: str
+    total: int
+    ingresados: int
+    en_proceso: int
+    respondidos: int
+    cerrados: int
+    rechazados: int
+    vencidos: int
+    tasa_cumplimiento: float
