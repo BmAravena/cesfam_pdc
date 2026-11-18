@@ -18,6 +18,8 @@ export interface RequerimientoResponse extends RequerimientoPublicoPayload {
   id_requerimiento: number
   codigo_seguimiento: string
   estado: EstadoRequerimiento
+  respuesta: string | null
+  fecha_respuesta: string | null
   fecha_ingreso: string
   fecha_limite: string
 }
@@ -27,6 +29,8 @@ export interface RequerimientoPublicoResponse {
   codigo_seguimiento: string
   tipo_solicitud: string
   estado: EstadoRequerimiento
+  respuesta: string | null
+  fecha_respuesta: string | null
   fecha_ingreso: string
   fecha_limite: string
 }
@@ -71,5 +75,20 @@ export async function listarRequerimientos(
   const { data } = await api.get<RequerimientoResponse[]>('/requerimientos', {
     params,
   })
+  return data
+}
+
+/**
+ * PATCH /requerimientos/{id}/respuesta — guarda la respuesta y deja el
+ * requerimiento en estado "Respondido".
+ */
+export async function responderRequerimiento(
+  requerimientoId: number,
+  respuesta: string,
+): Promise<RequerimientoResponse> {
+  const { data } = await api.patch<RequerimientoResponse>(
+    `/requerimientos/${requerimientoId}/respuesta`,
+    { respuesta },
+  )
   return data
 }

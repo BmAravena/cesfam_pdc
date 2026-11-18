@@ -164,6 +164,23 @@ export function ConsultaPage() {
               </div>
             </dl>
 
+            {resultado.respuesta && (
+              <div className="mt-5 rounded-xl border border-brand-200 bg-brand-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">
+                  Respuesta de OIRS
+                </p>
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-800">
+                  {resultado.respuesta}
+                </p>
+                {resultado.fecha_respuesta && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Respondido el{' '}
+                    {formatearFecha(resultado.fecha_respuesta.slice(0, 10))}
+                  </p>
+                )}
+              </div>
+            )}
+
             <p className="mt-5 text-xs leading-relaxed text-slate-500">
               Por protección de datos, el detalle del requerimiento no se muestra
               en la consulta pública.

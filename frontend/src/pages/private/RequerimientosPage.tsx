@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { ResponderModal } from '../../features/requerimientos/ResponderModal'
 import { getErrorMessage } from '../../services/api'
 import {
   listarRequerimientos,
@@ -21,13 +22,22 @@ function formatearFecha(fecha: string): string {
   return `${dia}-${mes}-${anio}`
 }
 
+function etiquetaAccion(estado: EstadoRequerimiento): string {
+  if (estado === 'Respondido' || estado === 'Cerrado') return 'Ver respuesta'
+  if (estado === 'Rechazado') return 'Ver detalle'
+  return 'Responder'
+}
+
 export function RequerimientosPage() {
   const [requerimientos, setRequerimientos] = useState<RequerimientoResponse[]>(
     [],
   )
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [exito, setExito] = useState<string | null>(null)
   const [recargar, setRecargar] = useState(0)
+  const [seleccionado, setSeleccionado] =
+    useState<RequerimientoResponse | null>(null)
 
   useEffect(() => {
     let activo = true
@@ -51,6 +61,12 @@ export function RequerimientosPage() {
     }
   }, [recargar])
 
+  function handleResponded() {
+    setSeleccionado(null)
+    setExito('Respuesta guardada. El requerimiento quedó en estado Respondido.')
+    setRecargar((valor) => valor + 1)
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -65,7 +81,11 @@ export function RequerimientosPage() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setRecargar((valor) => valor + 1)}
+            onClick={() => {
+              setError(null)
+              setExito(null)
+              setRecargar((valor) => valor + 1)
+            }}
             disabled={cargando}
             className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -89,9 +109,18 @@ export function RequerimientosPage() {
         </div>
       )}
 
+      {exito && (
+        <p
+          role="status"
+          className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800"
+        >
+          {exito}
+        </p>
+      )}
+
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th scope="col" className="px-4 py-3 font-semibold">
@@ -109,13 +138,16 @@ export function RequerimientosPage() {
                 <th scope="col" className="px-4 py-3 font-semibold">
                   Límite
                 </th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {cargando ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-12 text-center text-slate-500"
                   >
                     Cargando requerimientos…
@@ -124,7 +156,7 @@ export function RequerimientosPage() {
               ) : requerimientos.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="px-4 py-12 text-center text-slate-500"
                   >
                     No hay requerimientos para mostrar.
@@ -158,6 +190,18 @@ export function RequerimientosPage() {
                     <td className="whitespace-nowrap px-4 py-3 text-slate-600">
                       {formatearFecha(requerimiento.fecha_limite)}
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExito(null)
+                          setSeleccionado(requerimiento)
+                        }}
+                        className="rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50"
+                      >
+                        {etiquetaAccion(requerimiento.estado)}
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -165,6 +209,14 @@ export function RequerimientosPage() {
           </table>
         </div>
       </div>
+
+      {seleccionado && (
+        <ResponderModal
+          requerimiento={seleccionado}
+          onClose={() => setSeleccionado(null)}
+          onResponded={handleResponded}
+        />
+      )}
     </div>
   )
 }

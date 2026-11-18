@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import Field, model_validator
@@ -47,6 +47,10 @@ class RequerimientoOirsEstadoUpdate(ORMModel):
     estado: EstadoRequerimiento
 
 
+class RequerimientoOirsResponder(ORMModel):
+    respuesta: str = Field(min_length=1, max_length=5000)
+
+
 class RequerimientoOirsUpdate(ORMModel):
     tipo_solicitud: str | None = Field(default=None, min_length=1, max_length=30)
     detalle_solicitud: str | None = Field(default=None, min_length=1)
@@ -60,6 +64,8 @@ class RequerimientoOirsResponse(RequerimientoOirsBase):
     id_requerimiento: int
     codigo_seguimiento: str
     estado: EstadoRequerimiento
+    respuesta: str | None = None
+    fecha_respuesta: datetime | None = None
     fecha_ingreso: date
     fecha_limite: date
 
@@ -74,6 +80,8 @@ class RequerimientoOirsPublicoResponse(ORMModel):
     codigo_seguimiento: str
     tipo_solicitud: str
     estado: EstadoRequerimiento
+    respuesta: str | None = None
+    fecha_respuesta: datetime | None = None
     fecha_ingreso: date
     fecha_limite: date
 

@@ -1,9 +1,10 @@
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
     Date,
+    DateTime,
     ForeignKey,
     Index,
     String,
@@ -51,6 +52,11 @@ class RequerimientoOirs(Base):
         String(30),
         default="Ingresado",
         server_default=text("'Ingresado'"),
+    )
+    respuesta: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fecha_respuesta: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
     fecha_ingreso: Mapped[date] = mapped_column(
         Date,

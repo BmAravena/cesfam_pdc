@@ -1,5 +1,5 @@
 import secrets
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -194,6 +194,51 @@ class RequerimientoOirsService:
         self.db.add(log)
 
         # flush() sube ambos cambios en la misma transacción (commit lo hace get_db)
+        return await self.repo.update(requerimiento)
+
+    async def responder(
+        self,
+        requerimiento_id: int,
+        respuesta: str,
+        *,
+        id_usuario: int | None = None,
+        id_establecimiento: int | None = None,
+        ip_origen: str | None = None,
+    ) -> RequerimientoOirs:
+        """Registra la respuesta, marca el caso como Respondido y audita."""
+        requerimiento = await self.get(requerimiento_id)
+        if requerimiento.estado in ("Cerrado", "Rechazado"):
+            raise BusinessRuleError(
+                "No se puede responder un requerimiento "
+                f"en estado '{requerimiento.estado}'"
+            )
+
+        estado_anterior = requerimiento.estado
+        requerimiento.respuesta = respuesta
+        requerimiento.fecha_respuesta = datetime.now(timezone.utc)
+        requerimiento.estado = "Respondido"
+
+        accion = (
+            f"ACTUALIZACION_RESPUESTA req={requerimiento.id_requerimiento}"
+            if estado_anterior == "Respondido"
+            else (
+                f"RESPUESTA req={requerimiento.id_requerimiento} "
+                f"{estado_anterior}->Respondido"
+            )
+        )
+
+        log = AuditoriaLog(
+            id_usuario=id_usuario,
+            id_establecimiento=(
+                id_establecimiento
+                if id_establecimiento is not None
+                else requerimiento.id_establecimiento
+            ),
+            accion=accion,
+            ip_origen=ip_origen,
+        )
+        self.db.add(log)
+
         return await self.repo.update(requerimiento)
 
     async def delete(self, requerimiento_id: int) -> None:

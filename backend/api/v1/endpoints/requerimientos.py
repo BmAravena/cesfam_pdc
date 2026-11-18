@@ -11,6 +11,7 @@ from backend.api.v1.schemas.requerimiento_oirs import (
     RequerimientoOirsCreatePublico,
     RequerimientoOirsEstadoUpdate,
     RequerimientoOirsPublicoResponse,
+    RequerimientoOirsResponder,
     RequerimientoOirsResponse,
 )
 from backend.core.security import require_roles
@@ -128,6 +129,43 @@ async def cambiar_estado(
     return await service.cambiar_estado(
         requerimiento_id,
         data.estado,
+        id_usuario=usuario.id_usuario,
+        id_establecimiento=requerimiento.id_establecimiento,
+        ip_origen=ip_origen,
+    )
+
+
+@router.patch(
+    "/{requerimiento_id}/respuesta",
+    response_model=RequerimientoOirsResponse,
+    summary="Responder un requerimiento y registrar auditoría",
+)
+async def responder_requerimiento(
+    requerimiento_id: int,
+    data: RequerimientoOirsResponder,
+    request: Request,
+    usuario: Annotated[
+        Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL))
+    ],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RequerimientoOirsResponse:
+    """Guarda la respuesta y deja el requerimiento en estado Respondido."""
+    service = RequerimientoOirsService(db)
+    requerimiento = await service.get(requerimiento_id)
+
+    if not puede_acceder_establecimiento(
+        usuario.rol.nombre_rol,
+        usuario.id_establecimiento,
+        requerimiento.id_establecimiento,
+    ):
+        raise PermissionDenied(
+            "No tiene acceso a requerimientos de ese establecimiento"
+        )
+
+    ip_origen = request.client.host if request.client else None
+    return await service.responder(
+        requerimiento_id,
+        data.respuesta,
         id_usuario=usuario.id_usuario,
         id_establecimiento=requerimiento.id_establecimiento,
         ip_origen=ip_origen,
