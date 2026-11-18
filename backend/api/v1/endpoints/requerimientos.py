@@ -1,7 +1,7 @@
 """Requerimientos OIRS: ingreso público, seguimiento y gestión interna."""
 
 from typing import Annotated
-
+from backend.db.models import auditoria_log
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,7 +28,26 @@ from backend.services.requerimiento_oirs_service import RequerimientoOirsService
 
 router = APIRouter(prefix="/requerimientos", tags=["requerimientos"])
 
+@router.post(
+    "",
+    response_model=RequerimientoOirsResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Ingresar un requerimiento (público)",
+)
+async def crear_requerimiento(
+    data: RequerimientoOirsCreatePublico,
+    request: Request,  # <-- Agregamos Request para obtener la IP
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """El código de seguimiento y el plazo legal se generan en el servicio."""
+    service = RequerimientoOirsService(db)
+    ip_origen = request.client.host if request.client else "127.0.0.1"
+    return await service.create(
+        RequerimientoOirsCreate(**data.model_dump()),
+        ip_origen=ip_origen
+    )
 
+"""
 @router.post(
     "",
     response_model=RequerimientoOirsResponse,
@@ -39,10 +58,10 @@ async def crear_requerimiento(
     data: RequerimientoOirsCreatePublico,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """El código de seguimiento y el plazo legal se generan en el servicio."""
+    El código de seguimiento y el plazo legal se generan en el servicio.
     service = RequerimientoOirsService(db)
     return await service.create(RequerimientoOirsCreate(**data.model_dump()))
-
+"""
 
 @router.get(
     "/seguimiento/{codigo_seguimiento}",
@@ -54,6 +73,26 @@ async def seguimiento(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> RequerimientoOirsPublicoResponse:
     return await RequerimientoOirsService(db).get_publico(codigo_seguimiento)
+
+
+async def registrar_auditoria(
+    db: AsyncSession,
+    accion: str,
+    id_usuario: int | None = None,
+    id_requerimiento: int | None = None,
+    id_establecimiento: int | None = None,
+    request: Request | None = None
+):
+    ip_cliente = request.client.host if (request and request.client) else "127.0.0.1"
+    
+    nuevo_log = auditoria_log(
+        id_usuario=id_usuario,
+        id_requerimiento=id_requerimiento,
+        id_establecimiento=id_establecimiento,
+        accion=accion,
+        ip_origen=ip_cliente
+    )
+    db.add(nuevo_log)
 
 
 @router.get(

@@ -119,6 +119,47 @@ class RequerimientoOirsService:
             )
         return filas
 
+
+    async def create(
+        self,
+        data: RequerimientoOirsCreate,
+        ip_origen: str = "127.0.0.1",
+        id_usuario: int | None = None,
+    ) -> RequerimientoOirs:
+        codigo = data.codigo_seguimiento or await self._generar_codigo()
+        if await self.repo.get_by_codigo(codigo):
+            raise ConflictError(f"El código '{codigo}' ya existe")
+
+        fecha_ingreso = data.fecha_ingreso or date.today()
+        fecha_limite = data.fecha_limite or sumar_dias_habiles(
+            fecha_ingreso, DIAS_HABILES_PLAZO
+        )
+
+        requerimiento = RequerimientoOirs(
+            codigo_seguimiento=codigo,
+            tipo_solicitud=data.tipo_solicitud,
+            detalle_solicitud=data.detalle_solicitud,
+            estado=data.estado,
+            fecha_ingreso=fecha_ingreso,
+            fecha_limite=fecha_limite,
+            es_anonimo=data.es_anonimo,
+            id_establecimiento=data.id_establecimiento,
+        )
+        nuevo_req = await self.repo.create(requerimiento)
+
+        # Registrar evento en auditoria_log
+        log = AuditoriaLog(
+            id_usuario=id_usuario,
+            id_establecimiento=nuevo_req.id_establecimiento,
+            accion=f"CREACION_REQUERIMIENTO: {nuevo_req.codigo_seguimiento} (ID #{nuevo_req.id_requerimiento})"[:150],
+            ip_origen=ip_origen,
+        )
+        self.db.add(log)
+        await self.db.commit()
+
+        return nuevo_req
+
+    """
     async def create(self, data: RequerimientoOirsCreate) -> RequerimientoOirs:
         codigo = data.codigo_seguimiento or await self._generar_codigo()
         if await self.repo.get_by_codigo(codigo):
@@ -140,7 +181,7 @@ class RequerimientoOirsService:
             id_establecimiento=data.id_establecimiento,
         )
         return await self.repo.create(requerimiento)
-
+    """
     async def update(
         self, requerimiento_id: int, data: RequerimientoOirsUpdate
     ) -> RequerimientoOirs:
