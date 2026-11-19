@@ -13,10 +13,11 @@ class UsuarioBase(ORMModel):
     nombre: str = Field(min_length=1, max_length=120)
     email: EmailStr
     id_rol: int = Field(gt=0)
-    id_establecimiento: int = Field(gt=0)
+    #id_establecimiento: int = Field(gt=0)
 
 
 class UsuarioCreate(UsuarioBase):
+    id_establecimiento: int | None = Field(default=None, gt=0)
     # Contraseña en claro solo en la entrada; se hashea en el servicio.
     password: str = Field(min_length=8, max_length=128)
 
