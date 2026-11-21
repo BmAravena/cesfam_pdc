@@ -9,6 +9,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
+from starlette.requests import Request
 
 # Permite ejecutar el archivo directamente: python backend/db/session.py
 if __package__ in (None, ""):
@@ -51,14 +52,26 @@ if uses_pgbouncer:
         "prepared_statement_cache_size": 0,
     }
 
-engine = create_async_engine(
+# pool_pre_ping=False: el ping de checkout agrega un round-trip por request.
+# Con pool_recycle=1800 las conexiones ociosas se reciclan antes del corte del
+# pooler (~30 min), así que no hace falta pagar ese ping en cada request.
+_engine_options = {
+    "echo": settings.DATABASE_ECHO,
+    "pool_pre_ping": False,
+    "pool_recycle": 1800,  # el pooler de Supabase corta conexiones ociosas (~30 min)
+    "pool_size": 5,
+    "max_overflow": 10,
+    "connect_args": connect_args,
+}
+
+engine = create_async_engine(database_url, **_engine_options)
+
+# Motor de solo lectura en AUTOCOMMIT: evita BEGIN/COMMIT en los GET.
+# Los endpoints que escriben siguen usando `engine` (transacción normal).
+read_engine = create_async_engine(
     database_url,
-    echo=settings.DATABASE_ECHO,
-    pool_pre_ping=True,  # descarta conexiones muertas antes de usarlas
-    pool_recycle=1800,  # el pooler de Supabase corta conexiones ociosas (~30 min)
-    pool_size=5,
-    max_overflow=10,
-    connect_args=connect_args,
+    **_engine_options,
+    isolation_level="AUTOCOMMIT",
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -67,6 +80,15 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
     autoflush=False,
 )
+
+ReadAsyncSessionLocal = async_sessionmaker(
+    bind=read_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False,
+)
+
+READ_ONLY_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
 # Base declarativa para los modelos (SQLAlchemy 2.x)
@@ -89,11 +111,19 @@ async def session_scope() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependencia de FastAPI: una transacción por request.
+async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
+    """Dependencia de FastAPI: sesión (y transacción) por request.
 
-    El endpoint no debe hacer commit(); se confirma al terminar sin errores.
+    - GET/HEAD/OPTIONS: sesión de solo lectura en AUTOCOMMIT, sin
+      BEGIN/COMMIT (ahorra round-trips en cada consulta de lectura).
+    - Resto de métodos: transacción normal; se confirma al terminar sin
+      errores. El endpoint no debe hacer commit().
     """
+    if request.method in READ_ONLY_METHODS:
+        async with ReadAsyncSessionLocal() as session:
+            yield session
+        return
+
     async with session_scope() as session:
         yield session
 
@@ -113,8 +143,9 @@ async def check_db_connection() -> bool:
 
 
 async def close_db() -> None:
-    """Cierra el pool. Llamar al apagar la app (lifespan)."""
+    """Cierra los pools. Llamar al apagar la app (lifespan)."""
     await engine.dispose()
+    await read_engine.dispose()
 
 
 if __name__ == "__main__":

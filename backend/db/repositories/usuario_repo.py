@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from backend.db.models.usuario import Usuario
 from backend.db.repositories.base import BaseRepository
@@ -8,7 +9,23 @@ class UsuarioRepository(BaseRepository[Usuario]):
     model = Usuario
 
     async def get_by_email(self, email: str) -> Usuario | None:
-        query = select(Usuario).where(Usuario.email == email)
+        # El login necesita el rol para armar el JWT: se resuelve con un JOIN
+        # en una sola consulta en vez de dos.
+        query = (
+            select(Usuario)
+            .options(joinedload(Usuario.rol))
+            .where(Usuario.email == email)
+        )
+        result = await self.db.execute(query)
+        return result.scalars().first()
+
+    async def get_with_rol(self, usuario_id: int) -> Usuario | None:
+        """Usuario + rol en una sola consulta (autenticación por request)."""
+        query = (
+            select(Usuario)
+            .options(joinedload(Usuario.rol))
+            .where(Usuario.id_usuario == usuario_id)
+        )
         result = await self.db.execute(query)
         return result.scalars().first()
 

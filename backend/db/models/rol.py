@@ -18,9 +18,11 @@ class Rol(Base):
     nombre_rol: Mapped[str] = mapped_column(String(50), unique=True)
     descripcion: Mapped[str | None] = mapped_column(String(255))
 
+    # No se carga automáticamente: al leer un rol no se necesitan sus usuarios
+    # (antes esto arrastraba todos los usuarios de ese rol).
     usuarios: Mapped[list["Usuario"]] = relationship(
         back_populates="rol",
-        lazy="selectin",
+        lazy="raise",
     )
 
     def __repr__(self) -> str:

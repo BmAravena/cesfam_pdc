@@ -6,10 +6,12 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.v1.schemas.requerimiento_oirs import (
+    RequerimientoResumen,
     RequerimientoEstadisticaItem,
     RequerimientoOirsCreate,
     RequerimientoOirsCreatePublico,
     RequerimientoOirsEstadoUpdate,
+    RequerimientoOirsListItem,
     RequerimientoOirsPublicoResponse,
     RequerimientoOirsResponder,
     RequerimientoOirsResponse,
@@ -97,7 +99,7 @@ async def registrar_auditoria(
 
 @router.get(
     "",
-    response_model=list[RequerimientoOirsResponse],
+    response_model=list[RequerimientoOirsListItem],
     summary="Listar requerimientos según el alcance del rol",
 )
 async def listar_requerimientos(
@@ -108,14 +110,37 @@ async def listar_requerimientos(
     establecimiento_id: Annotated[int | None, Query(gt=0)] = None,
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
-) -> list[RequerimientoOirsResponse]:
-    """Funcionario Local: solo su centro. Roles globales: todos o filtro."""
-    return await RequerimientoOirsService(db).listar_autorizado(
+) -> list[RequerimientoOirsListItem]:
+    """Funcionario Local: solo su centro. Roles globales: todos o filtro.
+
+    Devuelve solo las columnas de la bandeja; el detalle se consulta por id.
+    """
+    return await RequerimientoOirsService(db).listar_autorizado_ligero(
         usuario,
         establecimiento_id=establecimiento_id,
         skip=skip,
         limit=limit,
     )
+
+
+@router.get(
+    "/resumen",
+    response_model=RequerimientoResumen,
+    summary="Totales del panel de control según el alcance del rol",
+)
+async def resumen_requerimientos(
+    usuario: Annotated[
+        Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL))
+    ],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    establecimiento_id: Annotated[int | None, Query(gt=0)] = None,
+) -> RequerimientoResumen:
+    """Agrega en la base los indicadores que muestra el dashboard."""
+    fila = await RequerimientoOirsService(db).resumen(
+        usuario,
+        establecimiento_id=establecimiento_id,
+    )
+    return RequerimientoResumen(**fila)
 
 
 @router.get(
@@ -135,6 +160,28 @@ async def estadisticas_requerimientos(
     """
     filas = await RequerimientoOirsService(db).estadisticas()
     return [RequerimientoEstadisticaItem(**fila) for fila in filas]
+
+
+@router.get(
+    "/{requerimiento_id}",
+    response_model=RequerimientoOirsResponse,
+    summary="Obtener el detalle de un requerimiento",
+)
+async def obtener_requerimiento(
+    requerimiento_id: int,
+    usuario: Annotated[
+        Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL))
+    ],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RequerimientoOirsResponse:
+    """Detalle completo (incluye detalle_solicitud y respuesta).
+
+    Se valida el alcance del rol para no exponer casos de otra sede.
+    """
+    return await RequerimientoOirsService(db).get_autorizado(
+        usuario,
+        requerimiento_id,
+    )
 
 
 @router.patch(

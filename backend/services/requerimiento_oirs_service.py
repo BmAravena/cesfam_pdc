@@ -108,6 +108,87 @@ class RequerimientoOirsService:
             usuario.id_establecimiento, skip=skip, limit=limit
         )
 
+    async def listar_autorizado_ligero(
+        self,
+        usuario: Usuario,
+        establecimiento_id: int | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[dict]:
+        """Igual que `listar_autorizado`, pero sin texto libre de cada fila."""
+        nombre_rol = usuario.rol.nombre_rol
+
+        if establecimiento_id is not None:
+            if not puede_acceder_establecimiento(
+                nombre_rol,
+                usuario.id_establecimiento,
+                establecimiento_id,
+            ):
+                raise PermissionDenied(
+                    "No tiene acceso a requerimientos de ese establecimiento"
+                )
+            return await self.repo.listar_ligero(
+                establecimiento_id, skip=skip, limit=limit
+            )
+
+        if tiene_alcance_global(nombre_rol):
+            return await self.repo.listar_ligero(None, skip=skip, limit=limit)
+
+        return await self.repo.listar_ligero(
+            usuario.id_establecimiento, skip=skip, limit=limit
+        )
+
+    async def get_autorizado(
+        self,
+        usuario: Usuario,
+        requerimiento_id: int,
+    ) -> RequerimientoOirs:
+        """Detalle validando que el usuario pueda ver esa sede."""
+        requerimiento = await self.get(requerimiento_id)
+        if not puede_acceder_establecimiento(
+            usuario.rol.nombre_rol,
+            usuario.id_establecimiento,
+            requerimiento.id_establecimiento,
+        ):
+            raise PermissionDenied(
+                "No tiene acceso a requerimientos de ese establecimiento"
+            )
+        return requerimiento
+
+    async def resumen(
+        self,
+        usuario: Usuario,
+        establecimiento_id: int | None = None,
+    ) -> dict:
+        """Totales para el panel, respetando el alcance del rol."""
+        nombre_rol = usuario.rol.nombre_rol
+
+        if establecimiento_id is not None:
+            if not puede_acceder_establecimiento(
+                nombre_rol,
+                usuario.id_establecimiento,
+                establecimiento_id,
+            ):
+                raise PermissionDenied(
+                    "No tiene acceso a requerimientos de ese establecimiento"
+                )
+            fila = await self.repo.resumen(establecimiento_id)
+        elif tiene_alcance_global(nombre_rol):
+            fila = await self.repo.resumen(None)
+        else:
+            fila = await self.repo.resumen(usuario.id_establecimiento)
+
+        total = fila["total"] or 0
+        vencidos = fila["vencidos"] or 0
+        fila["total"] = total
+        fila["abiertos"] = fila["abiertos"] or 0
+        fila["respondidos"] = fila["respondidos"] or 0
+        fila["vencidos"] = vencidos
+        fila["tasa_cumplimiento"] = (
+            round(((total - vencidos) / total) * 100, 2) if total else 100.0
+        )
+        return fila
+
     async def estadisticas(self) -> list[dict]:
         """Métricas por establecimiento con tasa de cumplimiento calculada."""
         filas = await self.repo.estadisticas_por_establecimiento()

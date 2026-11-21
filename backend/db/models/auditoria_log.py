@@ -39,13 +39,14 @@ class AuditoriaLog(Base):
     )
     ip_origen: Mapped[str | None] = mapped_column(INET)
 
+    # La API expone solo los IDs; no se cargan las entidades relacionadas.
     usuario: Mapped["Usuario | None"] = relationship(
         back_populates="auditorias",
-        lazy="selectin",
+        lazy="raise",
     )
     establecimiento: Mapped["Establecimiento | None"] = relationship(
         back_populates="auditorias",
-        lazy="selectin",
+        lazy="raise",
     )
 
     def __repr__(self) -> str:

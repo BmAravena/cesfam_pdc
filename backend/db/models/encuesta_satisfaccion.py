@@ -34,9 +34,10 @@ class EncuestaSatisfaccion(Base):
     )
     datos_documento: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
+    # La API expone id_establecimiento; no hace falta cargar la entidad.
     establecimiento: Mapped["Establecimiento"] = relationship(
         back_populates="encuestas",
-        lazy="selectin",
+        lazy="raise",
     )
 
     def __repr__(self) -> str:

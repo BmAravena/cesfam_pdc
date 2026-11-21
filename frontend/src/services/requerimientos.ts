@@ -24,6 +24,19 @@ export interface RequerimientoResponse extends RequerimientoPublicoPayload {
   fecha_limite: string
 }
 
+/**
+ * Fila de la bandeja interna. No incluye `detalle_solicitud` ni `respuesta`:
+ * esos campos se obtienen con `obtenerRequerimiento()` al abrir el detalle.
+ */
+export interface RequerimientoListItem {
+  id_requerimiento: number
+  codigo_seguimiento: string
+  tipo_solicitud: string
+  estado: EstadoRequerimiento
+  fecha_ingreso: string
+  fecha_limite: string
+}
+
 /** Respuesta pública de seguimiento (no incluye el detalle por privacidad). */
 export interface RequerimientoPublicoResponse {
   codigo_seguimiento: string
@@ -56,6 +69,29 @@ export async function consultarSeguimiento(
   return data
 }
 
+/** Totales agregados que consume el panel de control. */
+export interface RequerimientoResumen {
+  total: number
+  abiertos: number
+  respondidos: number
+  vencidos: number
+  tasa_cumplimiento: number
+}
+
+/**
+ * GET /requerimientos/resumen — indicadores del panel ya calculados en el
+ * backend y filtrados por el alcance del rol (sin traer las filas).
+ */
+export async function obtenerResumenRequerimientos(
+  params: { establecimiento_id?: number } = {},
+): Promise<RequerimientoResumen> {
+  const { data } = await api.get<RequerimientoResumen>(
+    '/requerimientos/resumen',
+    { params },
+  )
+  return data
+}
+
 export interface ListarRequerimientosParams {
   establecimiento_id?: number
   skip?: number
@@ -71,10 +107,20 @@ export interface ListarRequerimientosParams {
  */
 export async function listarRequerimientos(
   params: ListarRequerimientosParams = {},
-): Promise<RequerimientoResponse[]> {
-  const { data } = await api.get<RequerimientoResponse[]>('/requerimientos', {
+): Promise<RequerimientoListItem[]> {
+  const { data } = await api.get<RequerimientoListItem[]>('/requerimientos', {
     params,
   })
+  return data
+}
+
+/** GET /requerimientos/{id} — detalle completo para el modal. */
+export async function obtenerRequerimiento(
+  requerimientoId: number,
+): Promise<RequerimientoResponse> {
+  const { data } = await api.get<RequerimientoResponse>(
+    `/requerimientos/${requerimientoId}`,
+  )
   return data
 }
 

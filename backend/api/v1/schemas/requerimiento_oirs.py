@@ -60,6 +60,21 @@ class RequerimientoOirsUpdate(ORMModel):
     id_establecimiento: int | None = Field(default=None, gt=0)
 
 
+class RequerimientoOirsListItem(ORMModel):
+    """Fila de bandeja: solo las columnas que muestra la tabla.
+
+    No incluye `detalle_solicitud` ni `respuesta` (texto libre y potencialmente
+    largo); esos campos se piden aparte con GET /requerimientos/{id}.
+    """
+
+    id_requerimiento: int
+    codigo_seguimiento: str
+    tipo_solicitud: str
+    estado: EstadoRequerimiento
+    fecha_ingreso: date
+    fecha_limite: date
+
+
 class RequerimientoOirsResponse(RequerimientoOirsBase):
     id_requerimiento: int
     codigo_seguimiento: str
@@ -84,6 +99,16 @@ class RequerimientoOirsPublicoResponse(ORMModel):
     fecha_respuesta: datetime | None = None
     fecha_ingreso: date
     fecha_limite: date
+
+
+class RequerimientoResumen(ORMModel):
+    """Totales del panel de control, ya filtrados por el alcance del rol."""
+
+    total: int
+    abiertos: int
+    respondidos: int
+    vencidos: int
+    tasa_cumplimiento: float
 
 
 class RequerimientoEstadisticaItem(ORMModel):

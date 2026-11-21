@@ -88,7 +88,8 @@ async def get_current_user(
     except (TypeError, ValueError) as exc:
         raise CREDENTIALS_EXCEPTION from exc
 
-    usuario = await UsuarioRepository(db).get(usuario_id)
+    # Una sola consulta: usuario + rol (con selectin eran dos).
+    usuario = await UsuarioRepository(db).get_with_rol(usuario_id)
     if usuario is None or not usuario.activo:
         raise CREDENTIALS_EXCEPTION
     return usuario

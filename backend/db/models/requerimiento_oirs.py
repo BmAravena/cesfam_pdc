@@ -71,9 +71,10 @@ class RequerimientoOirs(Base):
         ForeignKey("establecimiento.id_establecimiento", ondelete="RESTRICT")
     )
 
+    # La API expone id_establecimiento; no hace falta cargar la entidad.
     establecimiento: Mapped["Establecimiento"] = relationship(
         back_populates="requerimientos",
-        lazy="selectin",
+        lazy="raise",
     )
 
     def __repr__(self) -> str:

@@ -5,7 +5,9 @@ import { ResponderModal } from '../../features/requerimientos/ResponderModal'
 import { getErrorMessage } from '../../services/api'
 import {
   listarRequerimientos,
+  obtenerRequerimiento,
   type EstadoRequerimiento,
+  type RequerimientoListItem,
   type RequerimientoResponse,
 } from '../../services/requerimientos'
 
@@ -29,7 +31,7 @@ function etiquetaAccion(estado: EstadoRequerimiento): string {
 }
 
 export function RequerimientosPage() {
-  const [requerimientos, setRequerimientos] = useState<RequerimientoResponse[]>(
+  const [requerimientos, setRequerimientos] = useState<RequerimientoListItem[]>(
     [],
   )
   const [cargando, setCargando] = useState(true)
@@ -38,6 +40,7 @@ export function RequerimientosPage() {
   const [recargar, setRecargar] = useState(0)
   const [seleccionado, setSeleccionado] =
     useState<RequerimientoResponse | null>(null)
+  const [cargandoDetalle, setCargandoDetalle] = useState<number | null>(null)
 
   useEffect(() => {
     let activo = true
@@ -65,6 +68,20 @@ export function RequerimientosPage() {
     setSeleccionado(null)
     setExito('Respuesta guardada. El requerimiento quedó en estado Respondido.')
     setRecargar((valor) => valor + 1)
+  }
+
+  async function abrirDetalle(requerimiento: RequerimientoListItem) {
+    setExito(null)
+    setError(null)
+    setCargandoDetalle(requerimiento.id_requerimiento)
+
+    try {
+      setSeleccionado(await obtenerRequerimiento(requerimiento.id_requerimiento))
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    } finally {
+      setCargandoDetalle(null)
+    }
   }
 
   return (
@@ -193,13 +210,13 @@ export function RequerimientosPage() {
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        onClick={() => {
-                          setExito(null)
-                          setSeleccionado(requerimiento)
-                        }}
-                        className="rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50"
+                        onClick={() => abrirDetalle(requerimiento)}
+                        disabled={cargandoDetalle === requerimiento.id_requerimiento}
+                        className="rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {etiquetaAccion(requerimiento.estado)}
+                        {cargandoDetalle === requerimiento.id_requerimiento
+                          ? 'Cargando…'
+                          : etiquetaAccion(requerimiento.estado)}
                       </button>
                     </td>
                   </tr>

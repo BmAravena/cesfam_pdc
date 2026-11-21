@@ -44,14 +44,19 @@ class Usuario(Base):
         nullable=True,
     )
 
+    # `rol` se mantiene en selectin: es necesario para la autorización RBAC
+    # en casi todos los endpoints y se resuelve en una sola query adicional.
     rol: Mapped["Rol"] = relationship(back_populates="usuarios", lazy="selectin")
+    # El resto NO se carga automáticamente: antes cada usuario arrastraba su
+    # establecimiento (con todos sus requerimientos/encuestas/logs) y toda su
+    # auditoría, multiplicando las consultas por request.
     establecimiento: Mapped["Establecimiento"] = relationship(
         back_populates="usuarios",
-        lazy="selectin",
+        lazy="raise",
     )
     auditorias: Mapped[list["AuditoriaLog"]] = relationship(
         back_populates="usuario",
-        lazy="selectin",
+        lazy="raise",
     )
 
     def __repr__(self) -> str:

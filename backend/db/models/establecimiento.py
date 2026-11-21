@@ -21,21 +21,24 @@ class Establecimiento(Base):
     nombre_centro: Mapped[str] = mapped_column(String(120))
     tipo_centro: Mapped[str] = mapped_column(String(60))
 
+    # Ninguna de estas colecciones se expone en las respuestas de la API.
+    # Con selectin, cargar un establecimiento traía TODOS sus usuarios,
+    # requerimientos, encuestas y logs, lo que dominaba la latencia.
     usuarios: Mapped[list["Usuario"]] = relationship(
         back_populates="establecimiento",
-        lazy="selectin",
+        lazy="raise",
     )
     requerimientos: Mapped[list["RequerimientoOirs"]] = relationship(
         back_populates="establecimiento",
-        lazy="selectin",
+        lazy="raise",
     )
     encuestas: Mapped[list["EncuestaSatisfaccion"]] = relationship(
         back_populates="establecimiento",
-        lazy="selectin",
+        lazy="raise",
     )
     auditorias: Mapped[list["AuditoriaLog"]] = relationship(
         back_populates="establecimiento",
-        lazy="selectin",
+        lazy="raise",
     )
 
     def __repr__(self) -> str:

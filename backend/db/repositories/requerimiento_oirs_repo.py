@@ -29,6 +29,56 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
+    async def listar_ligero(
+        self,
+        id_establecimiento: int | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[dict]:
+        """Bandeja: proyecta solo las columnas visibles en la tabla."""
+        req = RequerimientoOirs
+        query = select(
+            req.id_requerimiento,
+            req.codigo_seguimiento,
+            req.tipo_solicitud,
+            req.estado,
+            req.fecha_ingreso,
+            req.fecha_limite,
+        )
+        if id_establecimiento is not None:
+            query = query.where(req.id_establecimiento == id_establecimiento)
+
+        query = query.offset(skip).limit(limit)
+        result = await self.db.execute(query)
+        return [dict(row) for row in result.mappings().all()]
+
+    async def resumen(self, id_establecimiento: int | None = None) -> dict:
+        """Totales agregados (una fila) para el panel de control.
+
+        Si `id_establecimiento` es None se agrega sobre todos los centros.
+        """
+        req = RequerimientoOirs
+        hoy = date.today()
+        finalizados = ("Respondido", "Cerrado", "Rechazado")
+
+        query = select(
+            func.count(req.id_requerimiento).label("total"),
+            func.count(req.id_requerimiento)
+            .filter(req.estado.in_(("Ingresado", "En Proceso")))
+            .label("abiertos"),
+            func.count(req.id_requerimiento)
+            .filter(req.estado == "Respondido")
+            .label("respondidos"),
+            func.count(req.id_requerimiento)
+            .filter(req.estado.notin_(finalizados) & (req.fecha_limite < hoy))
+            .label("vencidos"),
+        )
+        if id_establecimiento is not None:
+            query = query.where(req.id_establecimiento == id_establecimiento)
+
+        result = await self.db.execute(query)
+        return dict(result.mappings().one())
+
     async def estadisticas_por_establecimiento(self) -> list[dict]:
         """Agrupa requerimientos por centro y calcula conteos por estado.
 
