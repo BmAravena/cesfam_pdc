@@ -35,6 +35,8 @@ class UsuarioUpdate(ORMModel):
 
 class UsuarioResponse(UsuarioBase):
     id_usuario: int
+    # Nulo para roles globales (Administrador / Encargado Comunal).
+    id_establecimiento: int | None = None
     activo: bool
     fecha_baja: datetime | None
     # Nunca se expone password_hash

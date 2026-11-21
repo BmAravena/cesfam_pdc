@@ -241,7 +241,7 @@ export function UsuariosPage() {
                   Rol
                 </th>
                 <th scope="col" className="px-4 py-3 font-semibold">
-                  Establecimiento
+                  Establecimiento / alcance
                 </th>
                 <th scope="col" className="px-4 py-3 font-semibold">
                   Estado
@@ -300,9 +300,11 @@ export function UsuariosPage() {
                           `Rol #${usuario.id_rol}`}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        {establecimientosPorId.get(
-                          usuario.id_establecimiento,
-                        ) ?? `Sede #${usuario.id_establecimiento}`}
+                        {usuario.id_establecimiento === null
+                          ? 'Todas las sedes'
+                          : (establecimientosPorId.get(
+                              usuario.id_establecimiento,
+                            ) ?? `Sede #${usuario.id_establecimiento}`)}
                       </td>
                       <td className="px-4 py-3">
                         <span

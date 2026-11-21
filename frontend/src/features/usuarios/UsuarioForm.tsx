@@ -21,8 +21,13 @@ export function UsuarioForm({
   onCreated,
   onCancel,
 }: UsuarioFormProps) {
+  // El Administrador no se ofrece: solo puede crear roles OIRS.
+  const rolesDisponibles = roles.filter(
+    (rol) => rol.nombre_rol !== ROLES.ADMIN,
+  )
   const rolPorDefecto =
-    roles.find((rol) => rol.nombre_rol === ROLES.LOCAL) ?? roles[0]
+    rolesDisponibles.find((rol) => rol.nombre_rol === ROLES.LOCAL) ??
+    rolesDisponibles[0]
 
   const [rut, setRut] = useState('')
   const [nombre, setNombre] = useState('')
@@ -32,12 +37,32 @@ export function UsuarioForm({
     rolPorDefecto ? String(rolPorDefecto.id_rol) : '',
   )
   const [establecimientoId, setEstablecimientoId] = useState(
-    establecimientos.length === 1
+    rolPorDefecto?.nombre_rol === ROLES.LOCAL && establecimientos.length === 1
       ? String(establecimientos[0].id_establecimiento)
       : '',
   )
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const rolSeleccionado = rolesDisponibles.find(
+    (rol) => String(rol.id_rol) === rolId,
+  )?.nombre_rol
+  const requiereEstablecimiento = rolSeleccionado === ROLES.LOCAL
+
+  function handleRolChange(valor: string) {
+    setRolId(valor)
+    const nombreRol = rolesDisponibles.find(
+      (rol) => String(rol.id_rol) === valor,
+    )?.nombre_rol
+
+    if (nombreRol !== ROLES.LOCAL) {
+      setEstablecimientoId('')
+    } else if (establecimientos.length === 1) {
+      setEstablecimientoId(
+        String(establecimientos[0].id_establecimiento),
+      )
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -51,7 +76,9 @@ export function UsuarioForm({
         email: email.trim(),
         password,
         id_rol: Number(rolId),
-        id_establecimiento: Number(establecimientoId),
+        id_establecimiento: requiereEstablecimiento
+          ? Number(establecimientoId)
+          : null,
       })
       onCreated(usuario)
     } catch (requestError) {
@@ -166,10 +193,10 @@ export function UsuarioForm({
               id="usuario-rol"
               required
               value={rolId}
-              onChange={(event) => setRolId(event.target.value)}
+              onChange={(event) => handleRolChange(event.target.value)}
               className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             >
-              {roles.map((rol) => (
+              {rolesDisponibles.map((rol) => (
                 <option key={rol.id_rol} value={rol.id_rol}>
                   {rol.nombre_rol}
                 </option>
@@ -186,10 +213,11 @@ export function UsuarioForm({
             </label>
             <select
               id="usuario-establecimiento"
-              required
+              required={requiereEstablecimiento}
+              disabled={!requiereEstablecimiento}
               value={establecimientoId}
               onChange={(event) => setEstablecimientoId(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
             >
               <option value="">Selecciona un establecimiento</option>
               {establecimientos.map((establecimiento) => (
@@ -201,6 +229,11 @@ export function UsuarioForm({
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-slate-500">
+              {requiereEstablecimiento
+                ? 'Obligatorio: el Funcionario Local queda amarrado a esta sede.'
+                : 'El Encargado OIRS Comunal tiene alcance sobre todas las sedes; no requiere establecimiento.'}
+            </p>
           </div>
         </div>
 

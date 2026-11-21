@@ -82,7 +82,13 @@ export function DashboardPage() {
             Rol: <strong>{user?.rol ?? '—'}</strong>
           </span>
           <span>
-            Establecimiento: <strong>#{user?.id_establecimiento ?? '—'}</strong>
+            Establecimiento:{' '}
+            <strong>
+              {user?.id_establecimiento === null ||
+              user?.id_establecimiento === undefined
+                ? 'Todas las sedes'
+                : `#${user.id_establecimiento}`}
+            </strong>
           </span>
         </div>
       </div>

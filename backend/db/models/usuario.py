@@ -29,8 +29,11 @@ class Usuario(Base):
     id_rol: Mapped[int] = mapped_column(
         ForeignKey("rol.id_rol", ondelete="RESTRICT")
     )
-    id_establecimiento: Mapped[int] = mapped_column(
-        ForeignKey("establecimiento.id_establecimiento", ondelete="RESTRICT")
+    # Nulo para roles con alcance global (Administrador / Encargado Comunal):
+    # solo el Funcionario Local queda amarrado a una sede.
+    id_establecimiento: Mapped[int | None] = mapped_column(
+        ForeignKey("establecimiento.id_establecimiento", ondelete="RESTRICT"),
+        nullable=True,
     )
     # Borrado lógico: los usuarios dados de baja se conservan para no perder
     # la trazabilidad de auditoria_log ni liberar RUT/email.
@@ -50,7 +53,7 @@ class Usuario(Base):
     # El resto NO se carga automáticamente: antes cada usuario arrastraba su
     # establecimiento (con todos sus requerimientos/encuestas/logs) y toda su
     # auditoría, multiplicando las consultas por request.
-    establecimiento: Mapped["Establecimiento"] = relationship(
+    establecimiento: Mapped["Establecimiento | None"] = relationship(
         back_populates="usuarios",
         lazy="raise",
     )

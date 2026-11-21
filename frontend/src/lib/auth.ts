@@ -12,7 +12,7 @@ export interface JwtPayload {
   sub: string
   id_usuario?: number
   id_rol?: number
-  id_establecimiento?: number
+  id_establecimiento?: number | null
   rol?: string
   exp?: number
   iat?: number

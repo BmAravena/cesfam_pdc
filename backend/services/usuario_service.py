@@ -4,8 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.v1.schemas.usuario import UsuarioCreate, UsuarioUpdate
 from backend.core.security import hash_password, verify_password
+from backend.db.models.establecimiento import Establecimiento
+from backend.db.models.rol import Rol
 from backend.db.models.usuario import Usuario
 from backend.db.repositories.usuario_repo import UsuarioRepository
+from backend.services.authz import ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL
 from backend.services.exceptions import (
     BusinessRuleError,
     ConflictError,
@@ -42,7 +45,52 @@ class UsuarioService:
     async def get_by_rut(self, rut: str) -> Usuario | None:
         return await self.repo.get_by_rut(rut)
 
-    async def create(self, data: UsuarioCreate) -> Usuario:
+    async def _get_rol(self, rol_id: int) -> Rol:
+        rol = await self.db.get(Rol, rol_id)
+        if rol is None:
+            raise BusinessRuleError(f"Rol {rol_id} no encontrado")
+        return rol
+
+    async def _normalizar_establecimiento(
+        self,
+        rol: Rol,
+        establecimiento_id: int | None,
+    ) -> int | None:
+        """Solo el Funcionario Local requiere una sede.
+
+        El Encargado Comunal (y el Administrador) tienen alcance global, por lo
+        que su `id_establecimiento` se guarda como NULL.
+        """
+        if rol.nombre_rol == ROL_COMUNAL:
+            return None
+
+        if rol.nombre_rol == ROL_LOCAL:
+            if establecimiento_id is None:
+                raise BusinessRuleError(
+                    "El Funcionario Local requiere un establecimiento"
+                )
+            if await self.db.get(Establecimiento, establecimiento_id) is None:
+                raise BusinessRuleError("El establecimiento no existe")
+            return establecimiento_id
+
+        return establecimiento_id
+
+    async def create(
+        self,
+        data: UsuarioCreate,
+        *,
+        permitir_admin: bool = False,
+    ) -> Usuario:
+        rol = await self._get_rol(data.id_rol)
+        if rol.nombre_rol == ROL_ADMIN and not permitir_admin:
+            raise BusinessRuleError(
+                "No se puede crear otro Administrador del Sistema"
+            )
+
+        establecimiento_id = await self._normalizar_establecimiento(
+            rol, data.id_establecimiento
+        )
+
         if await self.repo.get_by_email(data.email):
             raise ConflictError("El email ya está registrado")
         if await self.repo.get_by_rut(data.rut):
@@ -53,14 +101,37 @@ class UsuarioService:
             nombre=data.nombre,
             email=str(data.email),
             password_hash=hash_password(data.password),
-            id_rol=data.id_rol,
-            id_establecimiento=data.id_establecimiento,
+            id_rol=rol.id_rol,
+            id_establecimiento=establecimiento_id,
         )
         return await self.repo.create(usuario)
 
     async def update(self, usuario_id: int, data: UsuarioUpdate) -> Usuario:
         usuario = await self.get(usuario_id)
         cambios = data.model_dump(exclude_unset=True)
+
+        # Mismas reglas de rol/sede que en la creación, pero solo si cambian.
+        if "id_rol" in cambios or "id_establecimiento" in cambios:
+            if "id_rol" in cambios:
+                rol = await self._get_rol(cambios["id_rol"])
+                if (
+                    rol.nombre_rol == ROL_ADMIN
+                    and usuario.id_rol != rol.id_rol
+                ):
+                    raise BusinessRuleError(
+                        "No se puede asignar el rol Administrador del Sistema"
+                    )
+            else:
+                rol = await self._get_rol(usuario.id_rol)
+
+            establecimiento_efectivo = cambios.get(
+                "id_establecimiento", usuario.id_establecimiento
+            )
+            cambios["id_establecimiento"] = (
+                await self._normalizar_establecimiento(
+                    rol, establecimiento_efectivo
+                )
+            )
 
         password = cambios.pop("password", None)
         if password is not None:

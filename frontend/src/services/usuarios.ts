@@ -6,7 +6,8 @@ export interface Usuario {
   nombre: string
   email: string
   id_rol: number
-  id_establecimiento: number
+  /** Nulo para roles con alcance global (Administrador / Comunal). */
+  id_establecimiento: number | null
   activo: boolean
   fecha_baja: string | null
 }
@@ -17,7 +18,8 @@ export interface CrearUsuarioPayload {
   email: string
   password: string
   id_rol: number
-  id_establecimiento: number
+  /** Obligatorio solo para Funcionario Local. */
+  id_establecimiento: number | null
 }
 
 export interface ActualizarUsuarioPayload {
@@ -26,7 +28,7 @@ export interface ActualizarUsuarioPayload {
   email?: string
   password?: string
   id_rol?: number
-  id_establecimiento?: number
+  id_establecimiento?: number | null
   activo?: boolean
 }
 

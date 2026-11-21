@@ -94,7 +94,7 @@ async def seed_admin(args: argparse.Namespace) -> None:
                 "Ejecuta `alembic upgrade head` para cargar los datos base."
             )
 
-        usuario = await UsuarioService(db).create(data)
+        usuario = await UsuarioService(db).create(data, permitir_admin=True)
         print(
             "Usuario creado correctamente: "
             f"id={usuario.id_usuario}, email={usuario.email}, "
