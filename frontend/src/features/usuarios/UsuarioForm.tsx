@@ -179,7 +179,10 @@ export function UsuarioForm({
               onChange={(event) => setPassword(event.target.value)}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
-            <p className="mt-1 text-xs text-slate-500">Mínimo 8 caracteres.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Mínimo 8 caracteres, al menos una mayúscula y un carácter
+              especial.
+            </p>
           </div>
 
           <div>

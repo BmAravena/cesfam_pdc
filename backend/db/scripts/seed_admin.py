@@ -24,6 +24,8 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+from pydantic import ValidationError
+
 from backend.api.v1.schemas.usuario import UsuarioCreate
 from backend.db.models.establecimiento import Establecimiento
 from backend.db.models.rol import Rol
@@ -70,14 +72,18 @@ async def seed_admin(args: argparse.Namespace) -> None:
         if password != confirmacion:
             raise SystemExit("Las contraseñas no coinciden.")
 
-    data = UsuarioCreate(
-        rut=args.rut,
-        nombre=args.nombre,
-        email=args.email,
-        password=password,
-        id_rol=args.rol,
-        id_establecimiento=args.establecimiento,
-    )
+    try:
+        data = UsuarioCreate(
+            rut=args.rut,
+            nombre=args.nombre,
+            email=args.email,
+            password=password,
+            id_rol=args.rol,
+            id_establecimiento=args.establecimiento,
+        )
+    except ValidationError as exc:
+        mensaje = exc.errors()[0].get("msg", "Datos inválidos")
+        raise SystemExit(f"No se pudo crear el administrador: {mensaje}") from exc
 
     async with session_scope() as db:
         rol = await db.get(Rol, args.rol)
