@@ -5,9 +5,7 @@ from pydantic import EmailStr, Field, field_validator
 from pydantic_core import PydanticCustomError
 
 from backend.api.v1.schemas.common import ORMModel
-
-# RUT chileno: 12345678-9, 12.345.678-9, 12345678-K
-RUT_PATTERN = r"^\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]$"
+from backend.core.rut import RutInvalido, validar_rut
 
 
 def _validar_fortaleza_password(value: str) -> str:
@@ -30,7 +28,9 @@ def _validar_fortaleza_password(value: str) -> str:
 
 
 class UsuarioBase(ORMModel):
-    rut: str = Field(min_length=8, max_length=12, pattern=RUT_PATTERN)
+    # Sin pattern aquí: UsuarioResponse también hereda este campo y no debe
+    # fallar al serializar RUT antiguos que no cumplan la regla actual.
+    rut: str
     nombre: str = Field(min_length=1, max_length=120)
     email: EmailStr
     id_rol: int = Field(gt=0)
@@ -38,9 +38,18 @@ class UsuarioBase(ORMModel):
 
 
 class UsuarioCreate(UsuarioBase):
+    rut: str
     id_establecimiento: int | None = Field(default=None, gt=0)
     # Contraseña en claro solo en la entrada; se hashea en el servicio.
     password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("rut")
+    @classmethod
+    def validar_rut_chileno(cls, value: str) -> str:
+        try:
+            return validar_rut(value)
+        except RutInvalido as exc:
+            raise PydanticCustomError("rut_invalido", str(exc)) from exc
 
     @field_validator("password")
     @classmethod
@@ -49,7 +58,9 @@ class UsuarioCreate(UsuarioBase):
 
 
 class UsuarioUpdate(ORMModel):
-    rut: str | None = Field(default=None, min_length=8, max_length=12, pattern=RUT_PATTERN)
+    # La validación se hace en el servicio solo si el RUT cambia, para no
+    # bloquear usuarios antiguos cuyo RUT no cumpla la regla actual.
+    rut: str | None = None
     nombre: str | None = Field(default=None, min_length=1, max_length=120)
     email: EmailStr | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128)

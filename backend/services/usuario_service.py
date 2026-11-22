@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.v1.schemas.usuario import UsuarioCreate, UsuarioUpdate
+from backend.core.rut import RutInvalido, limpiar_rut, validar_rut
 from backend.core.security import hash_password, verify_password
 from backend.db.models.establecimiento import Establecimiento
 from backend.db.models.rol import Rol
@@ -148,10 +149,25 @@ class UsuarioService:
             if await self.repo.get_by_email(str(nuevo_email)):
                 raise ConflictError("El email ya está registrado")
 
-        nuevo_rut = cambios.get("rut")
-        if nuevo_rut and nuevo_rut != usuario.rut:
-            if await self.repo.get_by_rut(nuevo_rut):
-                raise ConflictError("El RUT ya está registrado")
+        if "rut" in cambios:
+            nuevo_rut = cambios["rut"]
+            if nuevo_rut is None or not nuevo_rut.strip():
+                raise BusinessRuleError("El RUT no puede estar vacío")
+
+            # Solo se valida si realmente cambia: así un usuario antiguo con
+            # un RUT legado puede seguir editándose sin quedar bloqueado.
+            if limpiar_rut(nuevo_rut) == limpiar_rut(usuario.rut):
+                # Misma persona: conservamos el valor almacenado tal cual.
+                cambios["rut"] = usuario.rut
+            else:
+                try:
+                    nuevo_rut = validar_rut(nuevo_rut)
+                except RutInvalido as exc:
+                    raise BusinessRuleError(str(exc)) from exc
+
+                cambios["rut"] = nuevo_rut
+                if await self.repo.get_by_rut(nuevo_rut):
+                    raise ConflictError("El RUT ya está registrado")
 
         for campo, valor in cambios.items():
             setattr(usuario, campo, valor)

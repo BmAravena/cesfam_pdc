@@ -5,6 +5,7 @@ import type { Establecimiento } from '../../services/establecimientos'
 import type { Rol } from '../../services/roles'
 import { crearUsuario, type Usuario } from '../../services/usuarios'
 import { ROLES } from '../../lib/roles'
+import { normalizarRutValido } from '../../lib/rut'
 
 interface UsuarioFormProps {
   roles: Rol[]
@@ -12,8 +13,6 @@ interface UsuarioFormProps {
   onCreated: (usuario: Usuario) => void
   onCancel: () => void
 }
-
-const RUT_PATTERN = '^\\d{1,2}\\.?\\d{3}\\.?\\d{3}-?[\\dkK]$'
 
 export function UsuarioForm({
   roles,
@@ -67,11 +66,18 @@ export function UsuarioForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+
+    const rutNormalizado = normalizarRutValido(rut)
+    if (!rutNormalizado) {
+      setError('RUT inválido. Revisa el dígito verificador.')
+      return
+    }
+
     setEnviando(true)
 
     try {
       const usuario = await crearUsuario({
-        rut: rut.trim(),
+        rut: rutNormalizado,
         nombre: nombre.trim(),
         email: email.trim(),
         password,
@@ -132,14 +138,16 @@ export function UsuarioForm({
             <input
               id="usuario-rut"
               required
-              pattern={RUT_PATTERN}
-              maxLength={12}
+              maxLength={14}
               placeholder="12345678-9"
-              title="Formato: 12345678-9"
+              title="Ej: 12345678-9. Se valida el dígito verificador."
               value={rut}
               onChange={(event) => setRut(event.target.value)}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Se valida el dígito verificador (módulo 11).
+            </p>
           </div>
 
           <div>
