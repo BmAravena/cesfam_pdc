@@ -8,6 +8,8 @@ import { RootLayout } from '../layouts/RootLayout'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { AuditoriaPage } from '../pages/private/AuditoriaPage'
 import { DashboardPage } from '../pages/private/DashboardPage'
+import { EstablecimientosPage } from '../pages/private/EstablecimientosPage'
+import { MetricasPage } from '../pages/private/MetricasPage'
 import { RequerimientosPage } from '../pages/private/RequerimientosPage'
 import { UsuariosPage } from '../pages/private/UsuariosPage'
 import { ConsultaPage } from '../pages/public/ConsultaPage'
@@ -40,11 +42,16 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <DashboardPage /> },
               { path: 'requerimientos', element: <RequerimientosPage /> },
+              { path: 'metricas', element: <MetricasPage /> },
               {
                 // Gestión de usuarios: exclusivo del Administrador.
                 element: <RequireAuth allowedRoles={ADMIN_ONLY} />,
                 children: [
                   { path: 'usuarios', element: <UsuariosPage /> },
+                  {
+                    path: 'establecimientos',
+                    element: <EstablecimientosPage />,
+                  },
                 ],
               },
               {

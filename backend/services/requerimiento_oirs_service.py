@@ -112,6 +112,7 @@ class RequerimientoOirsService:
         self,
         usuario: Usuario,
         establecimiento_id: int | None = None,
+        estado: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[dict]:
@@ -128,14 +129,16 @@ class RequerimientoOirsService:
                     "No tiene acceso a requerimientos de ese establecimiento"
                 )
             return await self.repo.listar_ligero(
-                establecimiento_id, skip=skip, limit=limit
+                establecimiento_id, estado=estado, skip=skip, limit=limit
             )
 
         if tiene_alcance_global(nombre_rol):
-            return await self.repo.listar_ligero(None, skip=skip, limit=limit)
+            return await self.repo.listar_ligero(
+                None, estado=estado, skip=skip, limit=limit
+            )
 
         return await self.repo.listar_ligero(
-            usuario.id_establecimiento, skip=skip, limit=limit
+            usuario.id_establecimiento, estado=estado, skip=skip, limit=limit
         )
 
     async def get_autorizado(
@@ -189,9 +192,35 @@ class RequerimientoOirsService:
         )
         return fila
 
-    async def estadisticas(self) -> list[dict]:
-        """Métricas por establecimiento con tasa de cumplimiento calculada."""
-        filas = await self.repo.estadisticas_por_establecimiento()
+    async def estadisticas(
+        self,
+        usuario: Usuario,
+        establecimiento_id: int | None = None,
+    ) -> list[dict]:
+        """Métricas por establecimiento según el alcance del rol.
+
+        - Funcionario Local: solo su establecimiento.
+        - Encargado Comunal y Administrador: todos (comparativo).
+        """
+        nombre_rol = usuario.rol.nombre_rol
+
+        if establecimiento_id is not None and not puede_acceder_establecimiento(
+            nombre_rol,
+            usuario.id_establecimiento,
+            establecimiento_id,
+        ):
+            raise PermissionDenied(
+                "No tiene acceso a métricas de ese establecimiento"
+            )
+
+        if not tiene_alcance_global(nombre_rol):
+            if usuario.id_establecimiento is None:
+                return []
+            establecimiento_id = usuario.id_establecimiento
+
+        filas = await self.repo.estadisticas_por_establecimiento(
+            establecimiento_id
+        )
         for fila in filas:
             total = fila["total"] or 0
             vencidos = fila["vencidos"] or 0

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { useAuth } from '../../features/auth/useAuth'
+import { hasRole } from '../../lib/auth'
+import { GESTION_ROLES } from '../../lib/roles'
 import { getErrorMessage } from '../../services/api'
 import {
   obtenerResumenRequerimientos,
@@ -66,7 +69,9 @@ export function DashboardPage() {
           Panel de control
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Resumen operativo de la oficina OIRS para tu establecimiento.
+          {hasRole(user, GESTION_ROLES)
+            ? 'Resumen operativo de la oficina OIRS para todos los establecimientos.'
+            : 'Resumen operativo de la oficina OIRS para tu establecimiento.'}
         </p>
       </header>
 
@@ -92,6 +97,34 @@ export function DashboardPage() {
           </span>
         </div>
       </div>
+
+      {hasRole(user, GESTION_ROLES) && (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-5 shadow-sm">
+          <div>
+            <h2 className="text-sm font-semibold text-brand-900">
+              Supervisión y reportes
+            </h2>
+            <p className="mt-1 text-sm text-brand-800">
+              Revisa el cumplimiento de plazos y la satisfacción ciudadana de
+              todos los CESFAM de la comuna.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/panel/metricas"
+              className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
+            >
+              Ver métricas por CESFAM
+            </Link>
+            <Link
+              to="/panel/auditoria"
+              className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 transition-colors hover:bg-brand-100"
+            >
+              Ver auditoría
+            </Link>
+          </div>
+        </section>
+      )}
 
       {error && (
         <div

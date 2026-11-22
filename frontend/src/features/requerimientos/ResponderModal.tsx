@@ -2,15 +2,23 @@ import { useState, type FormEvent } from 'react'
 
 import { getErrorMessage } from '../../services/api'
 import {
+  cambiarEstadoRequerimiento,
   responderRequerimiento,
+  type EstadoRequerimiento,
   type RequerimientoResponse,
 } from '../../services/requerimientos'
 
 interface ResponderModalProps {
   requerimiento: RequerimientoResponse
   onClose: () => void
-  onResponded: () => void
+  onResponded: (mensaje?: string) => void
 }
+
+const ESTADOS_GESTION: EstadoRequerimiento[] = [
+  'En Proceso',
+  'Cerrado',
+  'Rechazado',
+]
 
 function formatearFecha(fecha: string): string {
   return new Intl.DateTimeFormat('es-CL', { dateStyle: 'long' }).format(
@@ -25,6 +33,8 @@ export function ResponderModal({
 }: ResponderModalProps) {
   const [respuesta, setRespuesta] = useState(requerimiento.respuesta ?? '')
   const [enviando, setEnviando] = useState(false)
+  const [cambiandoEstado, setCambiandoEstado] =
+    useState<EstadoRequerimiento | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const editable =
@@ -40,11 +50,39 @@ export function ResponderModal({
 
     try {
       await responderRequerimiento(requerimiento.id_requerimiento, respuesta.trim())
-      onResponded()
+      onResponded(
+        'Respuesta guardada. El requerimiento quedó en estado Respondido.',
+      )
     } catch (requestError) {
       setError(getErrorMessage(requestError))
     } finally {
       setEnviando(false)
+    }
+  }
+
+  async function handleCambiarEstado(nuevoEstado: EstadoRequerimiento) {
+    if (nuevoEstado === requerimiento.estado) return
+
+    if (nuevoEstado === 'Cerrado' || nuevoEstado === 'Rechazado') {
+      const confirmado = window.confirm(
+        `¿Cambiar el requerimiento a "${nuevoEstado}"? Esta acción quedará registrada en la auditoría.`,
+      )
+      if (!confirmado) return
+    }
+
+    setCambiandoEstado(nuevoEstado)
+    setError(null)
+
+    try {
+      await cambiarEstadoRequerimiento(
+        requerimiento.id_requerimiento,
+        nuevoEstado,
+      )
+      onResponded(`Requerimiento actualizado a "${nuevoEstado}".`)
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    } finally {
+      setCambiandoEstado(null)
     }
   }
 
@@ -62,7 +100,7 @@ export function ResponderModal({
               id="responder-titulo"
               className="text-lg font-semibold text-slate-900"
             >
-              {editable ? 'Responder requerimiento' : 'Detalle de la respuesta'}
+              {editable ? 'Gestionar requerimiento' : 'Detalle del requerimiento'}
             </h2>
             <p className="mt-1 font-mono text-xs text-slate-500">
               {requerimiento.codigo_seguimiento}
@@ -111,6 +149,33 @@ export function ResponderModal({
             </div>
           </div>
 
+          {editable && (
+            <div>
+              <p className="mb-1.5 text-sm font-medium text-slate-700">
+                Cambiar estado
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {ESTADOS_GESTION.map((estado) => (
+                  <button
+                    key={estado}
+                    type="button"
+                    onClick={() => handleCambiarEstado(estado)}
+                    disabled={
+                      cambiandoEstado !== null || requerimiento.estado === estado
+                    }
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {cambiandoEstado === estado ? 'Guardando…' : estado}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                Responder el requerimiento lo deja automáticamente en estado
+                Respondido.
+              </p>
+            </div>
+          )}
+
           <div>
             <label
               htmlFor="respuesta"
@@ -157,7 +222,7 @@ export function ResponderModal({
             <button
               type="button"
               onClick={onClose}
-              disabled={enviando}
+              disabled={enviando || cambiandoEstado !== null}
               className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-60"
             >
               {editable ? 'Cancelar' : 'Cerrar'}
@@ -165,7 +230,11 @@ export function ResponderModal({
             {editable && (
               <button
                 type="submit"
-                disabled={enviando || !respuesta.trim()}
+                disabled={
+                  enviando ||
+                  cambiandoEstado !== null ||
+                  !respuesta.trim()
+                }
                 className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {enviando ? 'Guardando…' : 'Guardar respuesta'}

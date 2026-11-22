@@ -13,7 +13,7 @@ from backend.api.v1.schemas.encuesta_satisfaccion import (
 from backend.core.security import require_roles
 from backend.db.models.usuario import Usuario
 from backend.db.session import get_db
-from backend.services.authz import ROL_ADMIN, ROL_COMUNAL
+from backend.services.authz import ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL
 from backend.services.encuesta_satisfaccion_service import (
     EncuestaSatisfaccionService,
 )
@@ -27,15 +27,20 @@ router = APIRouter(prefix="/encuestas", tags=["encuestas"])
     summary="Métricas de satisfacción por establecimiento",
 )
 async def reporte_encuestas(
+    usuario: Annotated[
+        Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL))
+    ],
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL))],
     establecimiento_id: Annotated[int | None, Query(gt=0)] = None,
 ) -> list[EncuestaReporteItem]:
-    """Agrega las claves numéricas `trato`, `tiempo_espera` y `calidad`.
+    """Local: solo su centro. Comunal y Administrador: todos o filtro.
 
-    El Encargado Comunal ve todos los centros; puede filtrar por uno.
+    Agrega las claves numéricas `trato`, `tiempo_espera` y `calidad`.
     """
-    filas = await EncuestaSatisfaccionService(db).reporte(establecimiento_id)
+    filas = await EncuestaSatisfaccionService(db).reporte(
+        usuario,
+        establecimiento_id,
+    )
     return [EncuestaReporteItem(**fila) for fila in filas]
 
 

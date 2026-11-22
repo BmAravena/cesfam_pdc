@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { useAuth } from '../../features/auth/useAuth'
 import { ResponderModal } from '../../features/requerimientos/ResponderModal'
+import { hasRole } from '../../lib/auth'
+import { GESTION_ROLES } from '../../lib/roles'
 import { getErrorMessage } from '../../services/api'
+import {
+  listarEstablecimientos,
+  type Establecimiento,
+} from '../../services/establecimientos'
 import {
   listarRequerimientos,
   obtenerRequerimiento,
@@ -19,6 +26,14 @@ const ESTADO_CLASSES: Record<EstadoRequerimiento, string> = {
   Rechazado: 'bg-red-50 text-red-700 ring-red-200',
 }
 
+const ESTADOS: EstadoRequerimiento[] = [
+  'Ingresado',
+  'En Proceso',
+  'Respondido',
+  'Cerrado',
+  'Rechazado',
+]
+
 function formatearFecha(fecha: string): string {
   const [anio, mes, dia] = fecha.slice(0, 10).split('-')
   return `${dia}-${mes}-${anio}`
@@ -27,13 +42,19 @@ function formatearFecha(fecha: string): string {
 function etiquetaAccion(estado: EstadoRequerimiento): string {
   if (estado === 'Respondido' || estado === 'Cerrado') return 'Ver respuesta'
   if (estado === 'Rechazado') return 'Ver detalle'
-  return 'Responder'
+  return 'Gestionar'
 }
 
 export function RequerimientosPage() {
+  const { user } = useAuth()
+  const puedeFiltrarSede = hasRole(user, GESTION_ROLES)
+
   const [requerimientos, setRequerimientos] = useState<RequerimientoListItem[]>(
     [],
   )
+  const [establecimientos, setEstablecimientos] = useState<Establecimiento[]>([])
+  const [estado, setEstado] = useState<EstadoRequerimiento | ''>('')
+  const [establecimientoId, setEstablecimientoId] = useState<number | ''>('')
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
@@ -45,10 +66,30 @@ export function RequerimientosPage() {
   useEffect(() => {
     let activo = true
 
+    listarEstablecimientos()
+      .then((data) => {
+        if (activo) setEstablecimientos(data)
+      })
+      .catch(() => {
+        // El filtro por sede es opcional; el listado funciona sin el catálogo.
+      })
+
+    return () => {
+      activo = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let activo = true
+
     setCargando(true)
     setError(null)
 
-    listarRequerimientos({ limit: 200 })
+    listarRequerimientos({
+      limit: 200,
+      ...(estado ? { estado } : {}),
+      ...(establecimientoId ? { establecimiento_id: establecimientoId } : {}),
+    })
       .then((data) => {
         if (activo) setRequerimientos(data)
       })
@@ -62,11 +103,11 @@ export function RequerimientosPage() {
     return () => {
       activo = false
     }
-  }, [recargar])
+  }, [estado, establecimientoId, recargar])
 
-  function handleResponded() {
+  function handleUpdated(mensaje?: string) {
     setSeleccionado(null)
-    setExito('Respuesta guardada. El requerimiento quedó en estado Respondido.')
+    setExito(mensaje ?? 'Requerimiento actualizado correctamente.')
     setRecargar((valor) => valor + 1)
   }
 
@@ -84,6 +125,8 @@ export function RequerimientosPage() {
     }
   }
 
+  const hayFiltros = estado !== '' || establecimientoId !== ''
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -93,6 +136,7 @@ export function RequerimientosPage() {
           </h1>
           <p className="mt-1 text-sm text-slate-600">
             Bandeja de solicitudes, reclamos, sugerencias y felicitaciones.
+            {!puedeFiltrarSede && ' Solo se muestran los casos de tu CESFAM.'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -117,6 +161,64 @@ export function RequerimientosPage() {
         </div>
       </header>
 
+      <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Estado
+          <select
+            value={estado}
+            onChange={(event) =>
+              setEstado(event.target.value as EstadoRequerimiento | '')
+            }
+            className="min-w-44 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+          >
+            <option value="">Todos los estados</option>
+            {ESTADOS.map((opcion) => (
+              <option key={opcion} value={opcion}>
+                {opcion}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {puedeFiltrarSede && (
+          <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Establecimiento
+            <select
+              value={establecimientoId}
+              onChange={(event) =>
+                setEstablecimientoId(
+                  event.target.value ? Number(event.target.value) : '',
+                )
+              }
+              className="min-w-52 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+            >
+              <option value="">Todas las sedes</option>
+              {establecimientos.map((establecimiento) => (
+                <option
+                  key={establecimiento.id_establecimiento}
+                  value={establecimiento.id_establecimiento}
+                >
+                  {establecimiento.nombre_centro}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {hayFiltros && (
+          <button
+            type="button"
+            onClick={() => {
+              setEstado('')
+              setEstablecimientoId('')
+            }}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </section>
+
       {error && (
         <div
           role="alert"
@@ -137,11 +239,14 @@ export function RequerimientosPage() {
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[1000px] text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th scope="col" className="px-4 py-3 font-semibold">
                   Código
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  CESFAM
                 </th>
                 <th scope="col" className="px-4 py-3 font-semibold">
                   Tipo
@@ -164,7 +269,7 @@ export function RequerimientosPage() {
               {cargando ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-12 text-center text-slate-500"
                   >
                     Cargando requerimientos…
@@ -173,10 +278,10 @@ export function RequerimientosPage() {
               ) : requerimientos.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-12 text-center text-slate-500"
                   >
-                    No hay requerimientos para mostrar.
+                    No hay requerimientos para el filtro seleccionado.
                   </td>
                 </tr>
               ) : (
@@ -187,6 +292,9 @@ export function RequerimientosPage() {
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">
                       {requerimiento.codigo_seguimiento}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {requerimiento.nombre_centro}
                     </td>
                     <td className="px-4 py-3 text-slate-700">
                       {requerimiento.tipo_solicitud}
@@ -227,11 +335,27 @@ export function RequerimientosPage() {
         </div>
       </div>
 
+      {!cargando && requerimientos.length > 0 && (
+        <p className="text-xs text-slate-500">
+          Mostrando {requerimientos.length} requerimiento
+          {requerimientos.length === 1 ? '' : 's'}
+          {establecimientoId
+            ? ` de ${
+                establecimientos.find(
+                  (item) =>
+                    item.id_establecimiento === establecimientoId,
+                )?.nombre_centro ?? 'la sede seleccionada'
+              }`
+            : ''}
+          .
+        </p>
+      )}
+
       {seleccionado && (
         <ResponderModal
           requerimiento={seleccionado}
           onClose={() => setSeleccionado(null)}
-          onResponded={handleResponded}
+          onResponded={handleUpdated}
         />
       )}
     </div>

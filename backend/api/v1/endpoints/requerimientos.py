@@ -108,6 +108,7 @@ async def listar_requerimientos(
     ],
     db: Annotated[AsyncSession, Depends(get_db)],
     establecimiento_id: Annotated[int | None, Query(gt=0)] = None,
+    estado: Annotated[str | None, Query(max_length=30)] = None,
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> list[RequerimientoOirsListItem]:
@@ -118,6 +119,7 @@ async def listar_requerimientos(
     return await RequerimientoOirsService(db).listar_autorizado_ligero(
         usuario,
         establecimiento_id=establecimiento_id,
+        estado=estado,
         skip=skip,
         limit=limit,
     )
@@ -149,16 +151,17 @@ async def resumen_requerimientos(
     summary="Métricas de cumplimiento por establecimiento",
 )
 async def estadisticas_requerimientos(
+    usuario: Annotated[
+        Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL))
+    ],
     db: Annotated[AsyncSession, Depends(get_db)],
-    _: Annotated[Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL))],
+    establecimiento_id: Annotated[int | None, Query(gt=0)] = None,
 ) -> list[RequerimientoEstadisticaItem]:
-    """Solo Administrador y Encargado Comunal.
-
-    Agrupa por centro los requerimientos ingresados, en proceso,
-    respondidos, cerrados, rechazados y vencidos, e indica la tasa de
-    cumplimiento (porcentaje de requerimientos no vencidos).
-    """
-    filas = await RequerimientoOirsService(db).estadisticas()
+    """Local: solo su centro. Comunal y Administrador: comparativo global."""
+    filas = await RequerimientoOirsService(db).estadisticas(
+        usuario,
+        establecimiento_id=establecimiento_id,
+    )
     return [RequerimientoEstadisticaItem(**fila) for fila in filas]
 
 

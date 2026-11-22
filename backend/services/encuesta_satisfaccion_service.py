@@ -4,10 +4,15 @@ from backend.api.v1.schemas.encuesta_satisfaccion import (
     EncuestaSatisfaccionCreate,
 )
 from backend.db.models.encuesta_satisfaccion import EncuestaSatisfaccion
+from backend.db.models.usuario import Usuario
 from backend.db.repositories.encuesta_satisfaccion_repo import (
     EncuestaSatisfaccionRepository,
 )
-from backend.services.exceptions import NotFoundError
+from backend.services.authz import (
+    puede_acceder_establecimiento,
+    tiene_alcance_global,
+)
+from backend.services.exceptions import NotFoundError, PermissionDenied
 
 
 class EncuestaSatisfaccionService:
@@ -39,6 +44,25 @@ class EncuestaSatisfaccionService:
         return await self.repo.create(encuesta)
 
     async def reporte(
-        self, id_establecimiento: int | None = None
+        self,
+        usuario: Usuario,
+        id_establecimiento: int | None = None,
     ) -> list[dict]:
+        """Reporte de satisfacción según el alcance del rol."""
+        nombre_rol = usuario.rol.nombre_rol
+
+        if id_establecimiento is not None and not puede_acceder_establecimiento(
+            nombre_rol,
+            usuario.id_establecimiento,
+            id_establecimiento,
+        ):
+            raise PermissionDenied(
+                "No tiene acceso a encuestas de ese establecimiento"
+            )
+
+        if not tiene_alcance_global(nombre_rol):
+            if usuario.id_establecimiento is None:
+                return []
+            id_establecimiento = usuario.id_establecimiento
+
         return await self.repo.reporte_por_establecimiento(id_establecimiento)

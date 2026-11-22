@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.api.v1.schemas.establecimiento import (
     EstablecimientoCreate,
     EstablecimientoResponse,
+    EstablecimientoUpdate,
 )
 from backend.core.security import require_roles
 from backend.db.models.usuario import Usuario
@@ -43,3 +44,30 @@ async def crear_establecimiento(
     _: Annotated[Usuario, Depends(require_roles(ROL_ADMIN))],
 ) -> EstablecimientoResponse:
     return await EstablecimientoService(db).create(data)
+
+
+@router.patch(
+    "/{establecimiento_id}",
+    response_model=EstablecimientoResponse,
+    summary="Actualizar un establecimiento (solo Administrador)",
+)
+async def actualizar_establecimiento(
+    establecimiento_id: int,
+    data: EstablecimientoUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[Usuario, Depends(require_roles(ROL_ADMIN))],
+) -> EstablecimientoResponse:
+    return await EstablecimientoService(db).update(establecimiento_id, data)
+
+
+@router.delete(
+    "/{establecimiento_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Eliminar un establecimiento sin datos asociados (solo Administrador)",
+)
+async def eliminar_establecimiento(
+    establecimiento_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[Usuario, Depends(require_roles(ROL_ADMIN))],
+) -> None:
+    await EstablecimientoService(db).delete(establecimiento_id)

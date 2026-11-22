@@ -20,12 +20,14 @@ class AuditoriaLogService:
         self,
         id_usuario: int | None = None,
         id_establecimiento: int | None = None,
+        accion: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[AuditoriaLog]:
         return await self.repo.get_filtrado(
             id_usuario=id_usuario,
             id_establecimiento=id_establecimiento,
+            accion=accion,
             skip=skip,
             limit=limit,
         )

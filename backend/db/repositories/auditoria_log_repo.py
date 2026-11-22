@@ -49,6 +49,7 @@ class AuditoriaLogRepository(BaseRepository[AuditoriaLog]):
         self,
         id_usuario: int | None = None,
         id_establecimiento: int | None = None,
+        accion: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[AuditoriaLog]:
@@ -59,6 +60,8 @@ class AuditoriaLogRepository(BaseRepository[AuditoriaLog]):
             query = query.where(
                 AuditoriaLog.id_establecimiento == id_establecimiento
             )
+        if accion:
+            query = query.where(AuditoriaLog.accion.ilike(f"%{accion}%"))
         query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())

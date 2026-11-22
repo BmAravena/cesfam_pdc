@@ -32,21 +32,32 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
     async def listar_ligero(
         self,
         id_establecimiento: int | None = None,
+        estado: str | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[dict]:
         """Bandeja: proyecta solo las columnas visibles en la tabla."""
         req = RequerimientoOirs
-        query = select(
-            req.id_requerimiento,
-            req.codigo_seguimiento,
-            req.tipo_solicitud,
-            req.estado,
-            req.fecha_ingreso,
-            req.fecha_limite,
+        query = (
+            select(
+                req.id_requerimiento,
+                req.codigo_seguimiento,
+                req.tipo_solicitud,
+                req.estado,
+                req.fecha_ingreso,
+                req.fecha_limite,
+                req.id_establecimiento,
+                Establecimiento.nombre_centro,
+            )
+            .join(
+                Establecimiento,
+                Establecimiento.id_establecimiento == req.id_establecimiento,
+            )
         )
         if id_establecimiento is not None:
             query = query.where(req.id_establecimiento == id_establecimiento)
+        if estado is not None:
+            query = query.where(req.estado == estado)
 
         query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
@@ -79,7 +90,10 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         result = await self.db.execute(query)
         return dict(result.mappings().one())
 
-    async def estadisticas_por_establecimiento(self) -> list[dict]:
+    async def estadisticas_por_establecimiento(
+        self,
+        id_establecimiento: int | None = None,
+    ) -> list[dict]:
         """Agrupa requerimientos por centro y calcula conteos por estado.
 
         `vencidos` considera solo requerimientos abiertos (ni respondidos,
@@ -122,6 +136,9 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
             .group_by(req.id_establecimiento, Establecimiento.nombre_centro)
             .order_by(Establecimiento.nombre_centro)
         )
+        if id_establecimiento is not None:
+            query = query.where(req.id_establecimiento == id_establecimiento)
+
         result = await self.db.execute(query)
         return [dict(row) for row in result.mappings().all()]
 

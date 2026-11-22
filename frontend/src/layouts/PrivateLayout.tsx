@@ -14,7 +14,13 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/panel', label: 'Panel', end: true },
   { to: '/panel/requerimientos', label: 'Requerimientos' },
+  { to: '/panel/metricas', label: 'Métricas' },
   { to: '/panel/usuarios', label: 'Usuarios', roles: ADMIN_ONLY },
+  {
+    to: '/panel/establecimientos',
+    label: 'Establecimientos',
+    roles: ADMIN_ONLY,
+  },
   { to: '/panel/auditoria', label: 'Auditoría', roles: GESTION_ROLES },
 ]
 

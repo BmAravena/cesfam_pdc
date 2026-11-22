@@ -25,12 +25,14 @@ async def listar_auditoria(
     _: Annotated[Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL))],
     id_usuario: Annotated[int | None, Query(gt=0)] = None,
     id_establecimiento: Annotated[int | None, Query(gt=0)] = None,
+    accion: Annotated[str | None, Query(max_length=150)] = None,
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> list[AuditoriaLogResponse]:
     return await AuditoriaLogService(db).listar(
         id_usuario=id_usuario,
         id_establecimiento=id_establecimiento,
+        accion=accion,
         skip=skip,
         limit=limit,
     )

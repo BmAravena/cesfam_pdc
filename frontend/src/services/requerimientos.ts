@@ -35,6 +35,8 @@ export interface RequerimientoListItem {
   estado: EstadoRequerimiento
   fecha_ingreso: string
   fecha_limite: string
+  id_establecimiento: number
+  nombre_centro: string
 }
 
 /** Respuesta pública de seguimiento (no incluye el detalle por privacidad). */
@@ -94,6 +96,7 @@ export async function obtenerResumenRequerimientos(
 
 export interface ListarRequerimientosParams {
   establecimiento_id?: number
+  estado?: EstadoRequerimiento
   skip?: number
   limit?: number
 }
@@ -124,6 +127,34 @@ export async function obtenerRequerimiento(
   return data
 }
 
+/** Métricas agregadas por CESFAM. */
+export interface EstadisticaRequerimiento {
+  id_establecimiento: number
+  nombre_centro: string
+  total: number
+  ingresados: number
+  en_proceso: number
+  respondidos: number
+  cerrados: number
+  rechazados: number
+  vencidos: number
+  tasa_cumplimiento: number
+}
+
+/**
+ * GET /requerimientos/estadisticas — alcance según el rol:
+ * local solo su centro; comunal y administrador, comparativo global.
+ */
+export async function obtenerEstadisticasRequerimientos(
+  params: { establecimiento_id?: number } = {},
+): Promise<EstadisticaRequerimiento[]> {
+  const { data } = await api.get<EstadisticaRequerimiento[]>(
+    '/requerimientos/estadisticas',
+    { params },
+  )
+  return data
+}
+
 /**
  * PATCH /requerimientos/{id}/respuesta — guarda la respuesta y deja el
  * requerimiento en estado "Respondido".
@@ -135,6 +166,21 @@ export async function responderRequerimiento(
   const { data } = await api.patch<RequerimientoResponse>(
     `/requerimientos/${requerimientoId}/respuesta`,
     { respuesta },
+  )
+  return data
+}
+
+/**
+ * PATCH /requerimientos/{id}/estado — cambia el estado y registra auditoría.
+ * Se usa para tomar un caso (En Proceso), cerrarlo o rechazarlo.
+ */
+export async function cambiarEstadoRequerimiento(
+  requerimientoId: number,
+  estado: EstadoRequerimiento,
+): Promise<RequerimientoResponse> {
+  const { data } = await api.patch<RequerimientoResponse>(
+    `/requerimientos/${requerimientoId}/estado`,
+    { estado },
   )
   return data
 }

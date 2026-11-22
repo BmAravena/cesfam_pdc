@@ -73,6 +73,8 @@ class RequerimientoOirsListItem(ORMModel):
     estado: EstadoRequerimiento
     fecha_ingreso: date
     fecha_limite: date
+    id_establecimiento: int
+    nombre_centro: str
 
 
 class RequerimientoOirsResponse(RequerimientoOirsBase):
