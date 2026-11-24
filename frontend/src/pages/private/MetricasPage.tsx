@@ -6,6 +6,7 @@ import { hasRole } from '../../lib/auth'
 import { GESTION_ROLES } from '../../lib/roles'
 import { getErrorMessage } from '../../services/api'
 import {
+  descargarReporteEncuestasCsv,
   obtenerReporteEncuestas,
   type EncuestaReporteItem,
 } from '../../services/encuestas'
@@ -40,6 +41,29 @@ function claseTasa(tasa: number): string {
   return 'bg-red-50 text-red-700 ring-red-200'
 }
 
+const DIMENSIONES_SATISFACCION = [
+  { clave: 'calidad_atencion', etiqueta: 'Calidad' },
+  { clave: 'tiempo_espera', etiqueta: 'Tiempo de espera' },
+  { clave: 'trato_personal', etiqueta: 'Trato' },
+  { clave: 'presentacion_limpieza', etiqueta: 'Presentación' },
+  { clave: 'claridad_indicaciones', etiqueta: 'Claridad' },
+] as const
+
+const ESCALA_SATISFACCION = [
+  'Muy insatisfecho',
+  'Insatisfecho',
+  'Neutral',
+  'Satisfecho',
+  'Muy satisfecho',
+]
+
+function formatearFechaHora(fecha: string): string {
+  return new Intl.DateTimeFormat('es-CL', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(fecha))
+}
+
 export function MetricasPage() {
   const { user } = useAuth()
   const puedeFiltrarSede = hasRole(user, GESTION_ROLES)
@@ -49,6 +73,7 @@ export function MetricasPage() {
   const [encuestas, setEncuestas] = useState<EncuestaReporteItem[]>([])
   const [establecimientoId, setEstablecimientoId] = useState<number | ''>('')
   const [cargando, setCargando] = useState(true)
+  const [exportando, setExportando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recargar, setRecargar] = useState(0)
 
@@ -137,6 +162,39 @@ export function MetricasPage() {
     [encuestas],
   )
 
+  const distribucionTotal = useMemo(
+    () =>
+      DIMENSIONES_SATISFACCION.map((dimension) => {
+        const valores = [1, 2, 3, 4, 5].map((valor) =>
+          encuestas.reduce(
+            (acumulado, reporte) =>
+              acumulado +
+              (reporte.distribucion[dimension.clave]?.[String(valor)] ?? 0),
+            0,
+          ),
+        )
+        return {
+          ...dimension,
+          valores,
+          total: valores.reduce((acumulado, valor) => acumulado + valor, 0),
+        }
+      }),
+    [encuestas],
+  )
+
+  const comentariosRecientes = useMemo(
+    () =>
+      encuestas
+        .flatMap((reporte) =>
+          reporte.comentarios.map((comentario) => ({
+            ...comentario,
+            id_establecimiento: reporte.id_establecimiento,
+          })),
+        )
+        .sort((a, b) => b.fecha_respuesta.localeCompare(a.fecha_respuesta)),
+    [encuestas],
+  )
+
   function handleExportar() {
     const filas: (string | number | null)[][] = [
       ['Cumplimiento de requerimientos por CESFAM'],
@@ -164,14 +222,18 @@ export function MetricasPage() {
       ]),
       [],
       ['Satisfacción ciudadana'],
-      ['CESFAM', 'Respuestas', 'Trato', 'Tiempo de espera', 'Calidad'],
+      [
+        'CESFAM',
+        'Respuestas',
+        ...DIMENSIONES_SATISFACCION.map((dimension) => dimension.etiqueta),
+      ],
       ...encuestas.map((reporte) => [
         nombrePorId.get(reporte.id_establecimiento) ??
           `Sede #${reporte.id_establecimiento}`,
         reporte.total_respuestas,
-        reporte.promedio_trato,
-        reporte.promedio_tiempo_espera,
-        reporte.promedio_calidad,
+        ...DIMENSIONES_SATISFACCION.map(
+          (dimension) => reporte.promedios[dimension.clave] ?? null,
+        ),
       ]),
     ]
 
@@ -181,6 +243,30 @@ export function MetricasPage() {
         ? 'todas-las-sedes'
         : 'mi-sede'
     descargarCsv(`metricas-${sufijo}-${new Date().toISOString().slice(0, 10)}`, filas)
+  }
+
+  async function handleExportarEncuestas() {
+    setError(null)
+    setExportando(true)
+
+    try {
+      const params = establecimientoId
+        ? { establecimiento_id: establecimientoId }
+        : {}
+      const blob = await descargarReporteEncuestasCsv(params)
+      const url = URL.createObjectURL(blob)
+      const enlace = document.createElement('a')
+      enlace.href = url
+      enlace.download = `encuestas-satisfaccion-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(enlace)
+      enlace.click()
+      enlace.remove()
+      URL.revokeObjectURL(url)
+    } catch (requestError) {
+      setError(getErrorMessage(requestError))
+    } finally {
+      setExportando(false)
+    }
   }
 
   return (
@@ -224,10 +310,20 @@ export function MetricasPage() {
           <button
             type="button"
             onClick={handleExportar}
-            disabled={cargando || estadisticas.length === 0}
+            disabled={
+              cargando || (estadisticas.length === 0 && encuestas.length === 0)
+            }
             className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Exportar CSV
+          </button>
+          <button
+            type="button"
+            onClick={handleExportarEncuestas}
+            disabled={cargando || exportando || encuestas.length === 0}
+            className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {exportando ? 'Exportando…' : 'Exportar satisfacción (CSV)'}
           </button>
           <button
             type="button"
@@ -364,33 +460,41 @@ export function MetricasPage() {
             Satisfacción ciudadana
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Promedios de las encuestas respondidas. Escala según el formulario
-            aplicado en cada centro.
+            Promedios de las encuestas respondidas, en escala de 1 a 5.
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-semibold">CESFAM</th>
                 <th className="px-4 py-3 text-right font-semibold">Respuestas</th>
-                <th className="px-4 py-3 text-right font-semibold">Trato</th>
-                <th className="px-4 py-3 text-right font-semibold">
-                  Tiempo de espera
-                </th>
-                <th className="px-4 py-3 text-right font-semibold">Calidad</th>
+                {DIMENSIONES_SATISFACCION.map((dimension) => (
+                  <th
+                    key={dimension.clave}
+                    className="px-4 py-3 text-right font-semibold"
+                  >
+                    {dimension.etiqueta}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {cargando ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
+                  <td
+                    colSpan={2 + DIMENSIONES_SATISFACCION.length}
+                    className="px-4 py-12 text-center text-slate-500"
+                  >
                     Cargando encuestas…
                   </td>
                 </tr>
               ) : encuestas.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
+                  <td
+                    colSpan={2 + DIMENSIONES_SATISFACCION.length}
+                    className="px-4 py-12 text-center text-slate-500"
+                  >
                     Aún no hay encuestas de satisfacción registradas.
                   </td>
                 </tr>
@@ -407,21 +511,119 @@ export function MetricasPage() {
                     <td className="px-4 py-3 text-right text-slate-700">
                       {formatearNumero(reporte.total_respuestas)}
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-700">
-                      {formatearPromedio(reporte.promedio_trato)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-700">
-                      {formatearPromedio(reporte.promedio_tiempo_espera)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-700">
-                      {formatearPromedio(reporte.promedio_calidad)}
-                    </td>
+                    {DIMENSIONES_SATISFACCION.map((dimension) => (
+                      <td
+                        key={dimension.clave}
+                        className="px-4 py-3 text-right text-slate-700"
+                      >
+                        {formatearPromedio(
+                          reporte.promedios[dimension.clave] ?? null,
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-4 py-3">
+          <h2 className="text-sm font-semibold text-slate-900">
+            Distribución de respuestas
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Cantidad de respuestas por valor en cada dimensión, para el filtro
+            seleccionado.
+          </p>
+        </div>
+        {encuestas.length === 0 ? (
+          <p className="px-4 py-10 text-center text-sm text-slate-500">
+            Sin respuestas para mostrar.
+          </p>
+        ) : (
+          <div className="grid gap-5 p-4 sm:grid-cols-2">
+            {distribucionTotal.map((dimension) => {
+              const maximo = Math.max(...dimension.valores, 1)
+              return (
+                <article
+                  key={dimension.clave}
+                  className="rounded-xl border border-slate-100 bg-slate-50/60 p-4"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      {dimension.etiqueta}
+                    </h3>
+                    <span className="text-xs text-slate-500">
+                      {formatearNumero(dimension.total)} respuestas
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-1.5">
+                    {dimension.valores.map((cantidad, index) => (
+                      <div key={index} className="flex items-center gap-2 text-xs">
+                        <span className="w-24 shrink-0 text-slate-500">
+                          {index + 1} · {ESCALA_SATISFACCION[index]}
+                        </span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-white ring-1 ring-slate-200">
+                          <div
+                            className="h-full rounded-full bg-brand-500"
+                            style={{
+                              width: `${(cantidad / maximo) * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="w-8 shrink-0 text-right font-medium text-slate-700">
+                          {formatearNumero(cantidad)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-4 py-3">
+          <h2 className="text-sm font-semibold text-slate-900">
+            Comentarios de usuarios
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Observaciones cualitativas opcionales. La encuesta no recopila datos
+            personales.
+          </p>
+        </div>
+        {comentariosRecientes.length === 0 ? (
+          <p className="px-4 py-10 text-center text-sm text-slate-500">
+            Aún no hay comentarios registrados.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {comentariosRecientes.map((comentario, index) => (
+              <li
+                key={`${comentario.id_establecimiento}-${comentario.fecha_respuesta}-${index}`}
+                className="px-4 py-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                  <span className="font-semibold text-slate-700">
+                    {nombrePorId.get(comentario.id_establecimiento) ??
+                      `Sede #${comentario.id_establecimiento}`}
+                  </span>
+                  <time dateTime={comentario.fecha_respuesta}>
+                    {formatearFechaHora(comentario.fecha_respuesta)}
+                  </time>
+                </div>
+                <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-slate-700">
+                  {comentario.comentario}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {!cargando && estadisticas.length > 0 && (

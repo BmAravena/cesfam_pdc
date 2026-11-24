@@ -53,6 +53,9 @@ export function PublicLayout() {
             <NavLink to="/consulta" className={navLinkClass}>
               Consultar estado
             </NavLink>
+            <NavLink to="/encuesta" className={navLinkClass}>
+              Encuesta de satisfacción
+            </NavLink>
             <NavLink to="/login" className={navLinkClass}>
               Acceso funcionarios
             </NavLink>

@@ -52,6 +52,12 @@ export function PortalPage() {
               >
                 Consultar estado
               </Link>
+              <Link
+                to="/encuesta"
+                className="rounded-xl border border-brand-300/50 bg-brand-800/40 px-5 py-3 text-sm font-semibold text-brand-50 transition-colors hover:bg-brand-800/70"
+              >
+                Responder encuesta de satisfacción
+              </Link>
             </div>
           </div>
 

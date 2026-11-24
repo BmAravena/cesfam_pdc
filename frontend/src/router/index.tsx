@@ -13,6 +13,7 @@ import { MetricasPage } from '../pages/private/MetricasPage'
 import { RequerimientosPage } from '../pages/private/RequerimientosPage'
 import { UsuariosPage } from '../pages/private/UsuariosPage'
 import { ConsultaPage } from '../pages/public/ConsultaPage'
+import { EncuestaPage } from '../pages/public/EncuestaPage'
 import { NuevaSolicitudPage } from '../pages/public/NuevaSolicitudPage'
 import { PortalPage } from '../pages/public/PortalPage'
 import { ADMIN_ONLY, GESTION_ROLES, PANEL_ROLES } from '../lib/roles'
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
           { index: true, element: <PortalPage /> },
           { path: 'solicitud', element: <NuevaSolicitudPage /> },
           { path: 'consulta', element: <ConsultaPage /> },
+          { path: 'encuesta', element: <EncuestaPage /> },
           { path: 'login', element: <LoginPage /> },
         ],
       },

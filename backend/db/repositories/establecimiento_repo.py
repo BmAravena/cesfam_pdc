@@ -24,6 +24,15 @@ class EstablecimientoRepository(BaseRepository[Establecimiento]):
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
+    async def get_by_ids(self, ids: list[int]) -> list[Establecimiento]:
+        if not ids:
+            return []
+        query = select(Establecimiento).where(
+            Establecimiento.id_establecimiento.in_(ids)
+        )
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
     async def has_asociados(self, establecimiento_id: int) -> bool:
         query = select(
             or_(

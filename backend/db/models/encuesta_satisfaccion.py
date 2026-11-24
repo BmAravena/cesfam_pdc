@@ -21,6 +21,11 @@ class EncuestaSatisfaccion(Base):
             name="ck_encuesta_datos_object",
         ),
         Index("idx_encuesta_establecimiento", "id_establecimiento"),
+        Index(
+            "idx_encuesta_establecimiento_fecha",
+            "id_establecimiento",
+            "fecha_respuesta",
+        ),
         Index("idx_gin_encuesta_datos", "datos_documento", postgresql_using="gin"),
     )
 
