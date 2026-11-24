@@ -6,6 +6,13 @@ from backend.db.models.establecimiento import Establecimiento
 from backend.db.models.requerimiento_oirs import RequerimientoOirs
 from backend.db.repositories.base import BaseRepository
 
+TIPO_RECLAMO = "Reclamo"
+
+
+def _rango_anio(anio: int) -> tuple[date, date]:
+    """Límites [inicio, fin) del año calendario para `fecha_ingreso`."""
+    return date(anio, 1, 1), date(anio + 1, 1, 1)
+
 
 class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
     model = RequerimientoOirs
@@ -33,6 +40,7 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         self,
         id_establecimiento: int | None = None,
         estado: str | None = None,
+        anio: int | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[dict]:
@@ -58,6 +66,12 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
             query = query.where(req.id_establecimiento == id_establecimiento)
         if estado is not None:
             query = query.where(req.estado == estado)
+        if anio is not None:
+            inicio, fin = _rango_anio(anio)
+            query = query.where(
+                req.fecha_ingreso >= inicio,
+                req.fecha_ingreso < fin,
+            )
 
         query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
@@ -138,6 +152,49 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         )
         if id_establecimiento is not None:
             query = query.where(req.id_establecimiento == id_establecimiento)
+
+        result = await self.db.execute(query)
+        return [dict(row) for row in result.mappings().all()]
+
+    async def reclamos_por_establecimiento(
+        self,
+        id_establecimiento: int | None = None,
+        anio: int | None = None,
+    ) -> list[dict]:
+        """Cuenta reclamos por centro, incluyendo sedes sin reclamos.
+
+        Se parte de `establecimiento` con LEFT JOIN para que los centros con
+        0 reclamos también aparezcan (el panel los muestra explícitamente).
+        Si se indica `anio`, solo se cuentan reclamos ingresados ese año.
+        """
+        req = RequerimientoOirs
+        condicion = (req.id_establecimiento == Establecimiento.id_establecimiento) & (
+            req.tipo_solicitud == TIPO_RECLAMO
+        )
+        if anio is not None:
+            inicio, fin = _rango_anio(anio)
+            condicion = condicion & (req.fecha_ingreso >= inicio) & (
+                req.fecha_ingreso < fin
+            )
+
+        query = (
+            select(
+                Establecimiento.id_establecimiento,
+                Establecimiento.nombre_centro,
+                func.count(req.id_requerimiento).label("total_reclamos"),
+            )
+            .select_from(Establecimiento)
+            .outerjoin(req, condicion)
+            .group_by(
+                Establecimiento.id_establecimiento,
+                Establecimiento.nombre_centro,
+            )
+            .order_by(Establecimiento.nombre_centro)
+        )
+        if id_establecimiento is not None:
+            query = query.where(
+                Establecimiento.id_establecimiento == id_establecimiento
+            )
 
         result = await self.db.execute(query)
         return [dict(row) for row in result.mappings().all()]

@@ -113,6 +113,7 @@ class RequerimientoOirsService:
         usuario: Usuario,
         establecimiento_id: int | None = None,
         estado: str | None = None,
+        anio: int | None = None,
         skip: int = 0,
         limit: int = 100,
     ) -> list[dict]:
@@ -129,16 +130,24 @@ class RequerimientoOirsService:
                     "No tiene acceso a requerimientos de ese establecimiento"
                 )
             return await self.repo.listar_ligero(
-                establecimiento_id, estado=estado, skip=skip, limit=limit
+                establecimiento_id,
+                estado=estado,
+                anio=anio,
+                skip=skip,
+                limit=limit,
             )
 
         if tiene_alcance_global(nombre_rol):
             return await self.repo.listar_ligero(
-                None, estado=estado, skip=skip, limit=limit
+                None, estado=estado, anio=anio, skip=skip, limit=limit
             )
 
         return await self.repo.listar_ligero(
-            usuario.id_establecimiento, estado=estado, skip=skip, limit=limit
+            usuario.id_establecimiento,
+            estado=estado,
+            anio=anio,
+            skip=skip,
+            limit=limit,
         )
 
     async def get_autorizado(
@@ -191,6 +200,29 @@ class RequerimientoOirsService:
             round(((total - vencidos) / total) * 100, 2) if total else 100.0
         )
         return fila
+
+    async def resumen_reclamos(
+        self, usuario: Usuario, anio: int | None = None
+    ) -> dict:
+        """Reclamos por establecimiento respetando el alcance del rol.
+
+        Los roles globales ven el total comunal y el desglose completo; el
+        Funcionario Local queda acotado a su sede. `anio` filtra por la
+        fecha de ingreso (None = todos los años).
+        """
+        nombre_rol = usuario.rol.nombre_rol
+
+        if tiene_alcance_global(nombre_rol):
+            filas = await self.repo.reclamos_por_establecimiento(None, anio=anio)
+        else:
+            if usuario.id_establecimiento is None:
+                return {"total_reclamos": 0, "por_establecimiento": []}
+            filas = await self.repo.reclamos_por_establecimiento(
+                usuario.id_establecimiento, anio=anio
+            )
+
+        total = sum(fila["total_reclamos"] or 0 for fila in filas)
+        return {"total_reclamos": total, "por_establecimiento": filas}
 
     async def estadisticas(
         self,

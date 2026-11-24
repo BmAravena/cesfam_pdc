@@ -13,7 +13,9 @@ import {
 import {
   listarRequerimientos,
   obtenerRequerimiento,
+  obtenerResumenReclamos,
   type EstadoRequerimiento,
+  type ReclamosResumen,
   type RequerimientoListItem,
   type RequerimientoResponse,
 } from '../../services/requerimientos'
@@ -56,6 +58,9 @@ export function RequerimientosPage() {
   const [estado, setEstado] = useState<EstadoRequerimiento | ''>('')
   const [establecimientoId, setEstablecimientoId] = useState<number | ''>('')
   const [cargando, setCargando] = useState(true)
+  const [reclamos, setReclamos] = useState<ReclamosResumen | null>(null)
+  const [cargandoReclamos, setCargandoReclamos] = useState(true)
+  const [errorReclamos, setErrorReclamos] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [exito, setExito] = useState<string | null>(null)
   const [recargar, setRecargar] = useState(0)
@@ -105,6 +110,28 @@ export function RequerimientosPage() {
     }
   }, [estado, establecimientoId, recargar])
 
+  useEffect(() => {
+    let activo = true
+
+    setCargandoReclamos(true)
+    setErrorReclamos(null)
+
+    obtenerResumenReclamos()
+      .then((data) => {
+        if (activo) setReclamos(data)
+      })
+      .catch((requestError) => {
+        if (activo) setErrorReclamos(getErrorMessage(requestError))
+      })
+      .finally(() => {
+        if (activo) setCargandoReclamos(false)
+      })
+
+    return () => {
+      activo = false
+    }
+  }, [recargar])
+
   function handleUpdated(mensaje?: string) {
     setSeleccionado(null)
     setExito(mensaje ?? 'Requerimiento actualizado correctamente.')
@@ -126,6 +153,20 @@ export function RequerimientosPage() {
   }
 
   const hayFiltros = estado !== '' || establecimientoId !== ''
+
+  const reclamoSeleccionado =
+    establecimientoId !== ''
+      ? (reclamos?.por_establecimiento.find(
+          (item) => item.id_establecimiento === establecimientoId,
+        ) ?? null)
+      : null
+
+  const nombreSedeSeleccionada =
+    establecimientoId !== ''
+      ? (establecimientos.find(
+          (item) => item.id_establecimiento === establecimientoId,
+        )?.nombre_centro ?? `Sede #${establecimientoId}`)
+      : ''
 
   return (
     <div className="space-y-6">
@@ -216,6 +257,104 @@ export function RequerimientosPage() {
           >
             Limpiar filtros
           </button>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Reclamos</h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {puedeFiltrarSede
+                ? 'Total de reclamos a nivel comunal y desglose por CESFAM.'
+                : 'Total de reclamos registrados en tu CESFAM.'}
+            </p>
+          </div>
+          <div className="flex items-baseline gap-2 rounded-xl bg-brand-50 px-4 py-2 ring-1 ring-brand-100">
+            <span className="text-2xl font-semibold text-brand-800">
+              {cargandoReclamos ? '—' : (reclamos?.total_reclamos ?? 0)}
+            </span>
+            <span className="text-xs font-medium text-brand-700">
+              {puedeFiltrarSede ? 'total comunal' : 'en tu CESFAM'}
+            </span>
+          </div>
+        </div>
+
+        {cargandoReclamos ? (
+          <p className="mt-4 text-xs text-slate-500">
+            Calculando reclamos…
+          </p>
+        ) : errorReclamos ? (
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            No se pudo calcular el resumen de reclamos: {errorReclamos}
+          </p>
+        ) : establecimientoId !== '' ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-700">
+                CESFAM seleccionado
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                {nombreSedeSeleccionada}
+              </p>
+            </div>
+            <p className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-brand-800">
+                {reclamoSeleccionado?.total_reclamos ?? 0}
+              </span>
+              <span className="text-xs font-medium text-brand-700">
+                {reclamoSeleccionado?.total_reclamos === 1
+                  ? 'reclamo'
+                  : 'reclamos'}
+              </span>
+            </p>
+          </div>
+        ) : (
+          <>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {(reclamos?.por_establecimiento ?? []).map((item) => {
+                const sinReclamos = item.total_reclamos === 0
+                return (
+                  <li
+                    key={item.id_establecimiento}
+                    className={[
+                      'flex items-center justify-between gap-3 rounded-xl px-3 py-2',
+                      sinReclamos
+                        ? 'border border-dashed border-slate-200 bg-white'
+                        : 'border border-slate-200 bg-slate-50/60',
+                    ].join(' ')}
+                  >
+                    <span
+                      className={[
+                        'truncate text-xs',
+                        sinReclamos
+                          ? 'text-slate-400'
+                          : 'font-medium text-slate-700',
+                      ].join(' ')}
+                    >
+                      {item.nombre_centro}
+                    </span>
+                    <span
+                      className={[
+                        'shrink-0 text-sm font-semibold',
+                        sinReclamos ? 'text-slate-400' : 'text-slate-900',
+                      ].join(' ')}
+                    >
+                      {item.total_reclamos}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            {(reclamos?.por_establecimiento.length ?? 0) === 0 && (
+              <p className="mt-4 text-xs text-slate-500">
+                No hay establecimientos para mostrar.
+              </p>
+            )}
+            <p className="mt-3 text-[11px] text-slate-400">
+              Se incluyen las sedes sin reclamos registrados.
+            </p>
+          </>
         )}
       </section>
 

@@ -101,6 +101,30 @@ export interface ListarRequerimientosParams {
   limit?: number
 }
 
+/** Conteo de reclamos de una sede (0 si no tiene). */
+export interface ReclamoEstablecimiento {
+  id_establecimiento: number
+  nombre_centro: string
+  total_reclamos: number
+}
+
+/** Resumen de reclamos ya acotado al alcance del rol por el backend. */
+export interface ReclamosResumen {
+  total_reclamos: number
+  por_establecimiento: ReclamoEstablecimiento[]
+}
+
+/**
+ * GET /requerimientos/reclamos/resumen — total de reclamos (tipo "Reclamo")
+ * y desglose por CESFAM, incluyendo sedes con 0 reclamos.
+ */
+export async function obtenerResumenReclamos(): Promise<ReclamosResumen> {
+  const { data } = await api.get<ReclamosResumen>(
+    '/requerimientos/reclamos/resumen',
+  )
+  return data
+}
+
 /**
  * GET /requerimientos — listado interno.
  *

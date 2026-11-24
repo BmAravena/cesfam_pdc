@@ -15,6 +15,7 @@ from backend.api.v1.schemas.requerimiento_oirs import (
     RequerimientoOirsPublicoResponse,
     RequerimientoOirsResponder,
     RequerimientoOirsResponse,
+    ReclamosResumen,
 )
 from backend.core.security import require_roles
 from backend.db.models.usuario import Usuario
@@ -163,6 +164,26 @@ async def estadisticas_requerimientos(
         establecimiento_id=establecimiento_id,
     )
     return [RequerimientoEstadisticaItem(**fila) for fila in filas]
+
+
+@router.get(
+    "/reclamos/resumen",
+    response_model=ReclamosResumen,
+    summary="Total de reclamos y desglose por establecimiento",
+)
+async def resumen_reclamos(
+    usuario: Annotated[
+        Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL))
+    ],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ReclamosResumen:
+    """Cuenta requerimientos de tipo Reclamo según el alcance del rol.
+
+    Los roles globales reciben el total comunal y una fila por establecimiento
+    (incluidas las sedes con 0 reclamos); el Funcionario Local solo su sede.
+    """
+    fila = await RequerimientoOirsService(db).resumen_reclamos(usuario)
+    return ReclamosResumen(**fila)
 
 
 @router.get(

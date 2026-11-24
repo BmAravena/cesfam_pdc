@@ -130,3 +130,18 @@ class RequerimientoEstadisticaItem(ORMModel):
     rechazados: int
     vencidos: int
     tasa_cumplimiento: float
+
+
+class ReclamoEstablecimientoItem(ORMModel):
+    """Conteo de reclamos de un establecimiento (puede ser 0)."""
+
+    id_establecimiento: int
+    nombre_centro: str
+    total_reclamos: int
+
+
+class ReclamosResumen(ORMModel):
+    """Total de reclamos y desglose por centro según el alcance del rol."""
+
+    total_reclamos: int
+    por_establecimiento: list[ReclamoEstablecimientoItem]
