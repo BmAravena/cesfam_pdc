@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { useAuth } from '../../features/auth/useAuth'
+import { ANIO_ACTUAL, ANIOS_DISPONIBLES } from '../../lib/anios'
 import { descargarCsv } from '../../lib/csv'
 import { hasRole } from '../../lib/auth'
 import { GESTION_ROLES } from '../../lib/roles'
@@ -72,6 +73,10 @@ export function MetricasPage() {
   const [estadisticas, setEstadisticas] = useState<EstadisticaRequerimiento[]>([])
   const [encuestas, setEncuestas] = useState<EncuestaReporteItem[]>([])
   const [establecimientoId, setEstablecimientoId] = useState<number | ''>('')
+  const [anio, setAnio] = useState<number | ''>(ANIO_ACTUAL)
+  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<number | null>(
+    null,
+  )
   const [cargando, setCargando] = useState(true)
   const [exportando, setExportando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -95,16 +100,19 @@ export function MetricasPage() {
 
   useEffect(() => {
     let activo = true
-    const params = establecimientoId
-      ? { establecimiento_id: establecimientoId }
-      : {}
+    const params = {
+      ...(establecimientoId ? { establecimiento_id: establecimientoId } : {}),
+      ...(anio !== '' ? { anio } : {}),
+    }
 
     setCargando(true)
     setError(null)
 
     Promise.all([
       obtenerEstadisticasRequerimientos(params),
-      obtenerReporteEncuestas(params),
+      obtenerReporteEncuestas(
+        establecimientoId ? { establecimiento_id: establecimientoId } : {},
+      ),
     ])
       .then(([estadisticasData, encuestasData]) => {
         if (!activo) return
@@ -121,7 +129,7 @@ export function MetricasPage() {
     return () => {
       activo = false
     }
-  }, [establecimientoId, recargar])
+  }, [establecimientoId, anio, recargar])
 
   const nombrePorId = useMemo(
     () =>
@@ -162,11 +170,36 @@ export function MetricasPage() {
     [encuestas],
   )
 
+  // Si la sucursal seleccionada deja de estar en los datos (por ejemplo al
+  // cambiar el filtro superior), volvemos automáticamente a la vista general.
+  const sucursalActiva =
+    sucursalSeleccionada !== null &&
+    encuestas.some(
+      (reporte) => reporte.id_establecimiento === sucursalSeleccionada,
+    )
+      ? sucursalSeleccionada
+      : null
+
+  const encuestasVisibles = useMemo(
+    () =>
+      sucursalActiva === null
+        ? encuestas
+        : encuestas.filter(
+            (reporte) => reporte.id_establecimiento === sucursalActiva,
+          ),
+    [encuestas, sucursalActiva],
+  )
+
+  const nombreSucursalActiva =
+    sucursalActiva === null
+      ? null
+      : (nombrePorId.get(sucursalActiva) ?? `Sede #${sucursalActiva}`)
+
   const distribucionTotal = useMemo(
     () =>
       DIMENSIONES_SATISFACCION.map((dimension) => {
         const valores = [1, 2, 3, 4, 5].map((valor) =>
-          encuestas.reduce(
+          encuestasVisibles.reduce(
             (acumulado, reporte) =>
               acumulado +
               (reporte.distribucion[dimension.clave]?.[String(valor)] ?? 0),
@@ -179,12 +212,12 @@ export function MetricasPage() {
           total: valores.reduce((acumulado, valor) => acumulado + valor, 0),
         }
       }),
-    [encuestas],
+    [encuestasVisibles],
   )
 
   const comentariosRecientes = useMemo(
     () =>
-      encuestas
+      encuestasVisibles
         .flatMap((reporte) =>
           reporte.comentarios.map((comentario) => ({
             ...comentario,
@@ -192,7 +225,7 @@ export function MetricasPage() {
           })),
         )
         .sort((a, b) => b.fecha_respuesta.localeCompare(a.fecha_respuesta)),
-    [encuestas],
+    [encuestasVisibles],
   )
 
   function handleExportar() {
@@ -242,7 +275,11 @@ export function MetricasPage() {
       : puedeFiltrarSede
         ? 'todas-las-sedes'
         : 'mi-sede'
-    descargarCsv(`metricas-${sufijo}-${new Date().toISOString().slice(0, 10)}`, filas)
+    const periodo = anio !== '' ? String(anio) : 'todos-los-anios'
+    descargarCsv(
+      `metricas-${sufijo}-${periodo}-${new Date().toISOString().slice(0, 10)}`,
+      filas,
+    )
   }
 
   async function handleExportarEncuestas() {
@@ -250,14 +287,15 @@ export function MetricasPage() {
     setExportando(true)
 
     try {
-      const params = establecimientoId
-        ? { establecimiento_id: establecimientoId }
-        : {}
+      const centro = sucursalActiva ?? (establecimientoId || null)
+      const params = centro ? { establecimiento_id: centro } : {}
       const blob = await descargarReporteEncuestasCsv(params)
       const url = URL.createObjectURL(blob)
       const enlace = document.createElement('a')
       enlace.href = url
-      enlace.download = `encuestas-satisfaccion-${new Date().toISOString().slice(0, 10)}.csv`
+      enlace.download = `encuestas-satisfaccion-${
+        centro ?? 'todas-las-sedes'
+      }-${new Date().toISOString().slice(0, 10)}.csv`
       document.body.appendChild(enlace)
       enlace.click()
       enlace.remove()
@@ -267,6 +305,14 @@ export function MetricasPage() {
     } finally {
       setExportando(false)
     }
+  }
+
+  function seleccionarSucursal(establecimientoIdSeleccionado: number) {
+    setSucursalSeleccionada((actual) =>
+      actual === establecimientoIdSeleccionado
+        ? null
+        : establecimientoIdSeleccionado,
+    )
   }
 
   return (
@@ -288,11 +334,12 @@ export function MetricasPage() {
               Establecimiento
               <select
                 value={establecimientoId}
-                onChange={(event) =>
+                onChange={(event) => {
                   setEstablecimientoId(
                     event.target.value ? Number(event.target.value) : '',
                   )
-                }
+                  setSucursalSeleccionada(null)
+                }}
                 className="min-w-52 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
               >
                 <option value="">Todas las sedes</option>
@@ -307,6 +354,24 @@ export function MetricasPage() {
               </select>
             </label>
           )}
+          <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Año
+            <select
+              value={anio}
+              onChange={(event) => {
+                setAnio(event.target.value ? Number(event.target.value) : '')
+                setSucursalSeleccionada(null)
+              }}
+              className="min-w-32 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+            >
+              <option value="">Todos los años</option>
+              {ANIOS_DISPONIBLES.map((opcion) => (
+                <option key={opcion} value={opcion}>
+                  {opcion}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             onClick={handleExportar}
@@ -460,7 +525,8 @@ export function MetricasPage() {
             Satisfacción ciudadana
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Promedios de las encuestas respondidas, en escala de 1 a 5.
+            Promedios de las encuestas respondidas, en escala de 1 a 5. Haz clic
+            en un CESFAM para ver su distribución individual.
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -502,11 +568,34 @@ export function MetricasPage() {
                 encuestas.map((reporte) => (
                   <tr
                     key={reporte.id_establecimiento}
-                    className="hover:bg-slate-50"
+                    title="Ver distribución de este CESFAM"
+                    onClick={() =>
+                      seleccionarSucursal(reporte.id_establecimiento)
+                    }
+                    className={[
+                      'cursor-pointer transition-colors',
+                      sucursalActiva === reporte.id_establecimiento
+                        ? 'bg-brand-50'
+                        : 'hover:bg-slate-50',
+                    ].join(' ')}
                   >
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {nombrePorId.get(reporte.id_establecimiento) ??
-                        `Sede #${reporte.id_establecimiento}`}
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          seleccionarSucursal(reporte.id_establecimiento)
+                        }}
+                        className="text-left font-medium text-slate-900 hover:text-brand-700"
+                      >
+                        {nombrePorId.get(reporte.id_establecimiento) ??
+                          `Sede #${reporte.id_establecimiento}`}
+                        <span className="mt-0.5 block text-xs font-normal text-brand-700">
+                          {sucursalActiva === reporte.id_establecimiento
+                            ? 'Mostrando su distribución'
+                            : 'Ver distribución →'}
+                        </span>
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-right text-slate-700">
                       {formatearNumero(reporte.total_respuestas)}
@@ -530,16 +619,29 @@ export function MetricasPage() {
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">
-            Distribución de respuestas
-          </h2>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Cantidad de respuestas por valor en cada dimensión, para el filtro
-            seleccionado.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">
+              Distribución de respuestas
+              {nombreSucursalActiva ? ` · ${nombreSucursalActiva}` : ''}
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {nombreSucursalActiva
+                ? 'Cantidad de respuestas por valor en cada dimensión para esta sucursal.'
+                : 'Cantidad de respuestas por valor en cada dimensión, para el filtro seleccionado.'}
+            </p>
+          </div>
+          {sucursalActiva !== null && (
+            <button
+              type="button"
+              onClick={() => setSucursalSeleccionada(null)}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+            >
+              Ver todas las sedes
+            </button>
+          )}
         </div>
-        {encuestas.length === 0 ? (
+        {encuestasVisibles.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-slate-500">
             Sin respuestas para mostrar.
           </p>
@@ -591,6 +693,7 @@ export function MetricasPage() {
         <div className="border-b border-slate-200 px-4 py-3">
           <h2 className="text-sm font-semibold text-slate-900">
             Comentarios de usuarios
+            {nombreSucursalActiva ? ` · ${nombreSucursalActiva}` : ''}
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
             Observaciones cualitativas opcionales. La encuesta no recopila datos
@@ -599,7 +702,9 @@ export function MetricasPage() {
         </div>
         {comentariosRecientes.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-slate-500">
-            Aún no hay comentarios registrados.
+            {nombreSucursalActiva
+              ? 'Esta sucursal aún no tiene comentarios registrados.'
+              : 'Aún no hay comentarios registrados.'}
           </p>
         ) : (
           <ul className="divide-y divide-slate-100">

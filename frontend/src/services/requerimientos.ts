@@ -85,7 +85,7 @@ export interface RequerimientoResumen {
  * backend y filtrados por el alcance del rol (sin traer las filas).
  */
 export async function obtenerResumenRequerimientos(
-  params: { establecimiento_id?: number } = {},
+  params: { establecimiento_id?: number; anio?: number } = {},
 ): Promise<RequerimientoResumen> {
   const { data } = await api.get<RequerimientoResumen>(
     '/requerimientos/resumen',
@@ -97,6 +97,7 @@ export async function obtenerResumenRequerimientos(
 export interface ListarRequerimientosParams {
   establecimiento_id?: number
   estado?: EstadoRequerimiento
+  anio?: number
   skip?: number
   limit?: number
 }
@@ -118,9 +119,12 @@ export interface ReclamosResumen {
  * GET /requerimientos/reclamos/resumen — total de reclamos (tipo "Reclamo")
  * y desglose por CESFAM, incluyendo sedes con 0 reclamos.
  */
-export async function obtenerResumenReclamos(): Promise<ReclamosResumen> {
+export async function obtenerResumenReclamos(
+  params: { anio?: number } = {},
+): Promise<ReclamosResumen> {
   const { data } = await api.get<ReclamosResumen>(
     '/requerimientos/reclamos/resumen',
+    { params },
   )
   return data
 }
@@ -170,7 +174,7 @@ export interface EstadisticaRequerimiento {
  * local solo su centro; comunal y administrador, comparativo global.
  */
 export async function obtenerEstadisticasRequerimientos(
-  params: { establecimiento_id?: number } = {},
+  params: { establecimiento_id?: number; anio?: number } = {},
 ): Promise<EstadisticaRequerimiento[]> {
   const { data } = await api.get<EstadisticaRequerimiento[]>(
     '/requerimientos/estadisticas',

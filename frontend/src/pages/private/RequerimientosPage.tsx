@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { useAuth } from '../../features/auth/useAuth'
 import { ResponderModal } from '../../features/requerimientos/ResponderModal'
+import { ANIO_ACTUAL, ANIOS_DISPONIBLES } from '../../lib/anios'
 import { hasRole } from '../../lib/auth'
 import { GESTION_ROLES } from '../../lib/roles'
 import { getErrorMessage } from '../../services/api'
@@ -57,6 +58,7 @@ export function RequerimientosPage() {
   const [establecimientos, setEstablecimientos] = useState<Establecimiento[]>([])
   const [estado, setEstado] = useState<EstadoRequerimiento | ''>('')
   const [establecimientoId, setEstablecimientoId] = useState<number | ''>('')
+  const [anio, setAnio] = useState<number | ''>(ANIO_ACTUAL)
   const [cargando, setCargando] = useState(true)
   const [reclamos, setReclamos] = useState<ReclamosResumen | null>(null)
   const [cargandoReclamos, setCargandoReclamos] = useState(true)
@@ -94,6 +96,7 @@ export function RequerimientosPage() {
       limit: 200,
       ...(estado ? { estado } : {}),
       ...(establecimientoId ? { establecimiento_id: establecimientoId } : {}),
+      ...(anio !== '' ? { anio } : {}),
     })
       .then((data) => {
         if (activo) setRequerimientos(data)
@@ -108,7 +111,7 @@ export function RequerimientosPage() {
     return () => {
       activo = false
     }
-  }, [estado, establecimientoId, recargar])
+  }, [estado, establecimientoId, anio, recargar])
 
   useEffect(() => {
     let activo = true
@@ -116,7 +119,7 @@ export function RequerimientosPage() {
     setCargandoReclamos(true)
     setErrorReclamos(null)
 
-    obtenerResumenReclamos()
+    obtenerResumenReclamos(anio !== '' ? { anio } : {})
       .then((data) => {
         if (activo) setReclamos(data)
       })
@@ -130,7 +133,7 @@ export function RequerimientosPage() {
     return () => {
       activo = false
     }
-  }, [recargar])
+  }, [anio, recargar])
 
   function handleUpdated(mensaje?: string) {
     setSeleccionado(null)
@@ -152,7 +155,8 @@ export function RequerimientosPage() {
     }
   }
 
-  const hayFiltros = estado !== '' || establecimientoId !== ''
+  const hayFiltros =
+    estado !== '' || establecimientoId !== '' || anio !== ANIO_ACTUAL
 
   const reclamoSeleccionado =
     establecimientoId !== ''
@@ -246,12 +250,31 @@ export function RequerimientosPage() {
           </label>
         )}
 
+        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Año
+          <select
+            value={anio}
+            onChange={(event) =>
+              setAnio(event.target.value ? Number(event.target.value) : '')
+            }
+            className="min-w-32 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+          >
+            <option value="">Todos los años</option>
+            {ANIOS_DISPONIBLES.map((opcion) => (
+              <option key={opcion} value={opcion}>
+                {opcion}
+              </option>
+            ))}
+          </select>
+        </label>
+
         {hayFiltros && (
           <button
             type="button"
             onClick={() => {
               setEstado('')
               setEstablecimientoId('')
+              setAnio(ANIO_ACTUAL)
             }}
             className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >

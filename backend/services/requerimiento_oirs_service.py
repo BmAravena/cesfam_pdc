@@ -139,7 +139,11 @@ class RequerimientoOirsService:
 
         if tiene_alcance_global(nombre_rol):
             return await self.repo.listar_ligero(
-                None, estado=estado, anio=anio, skip=skip, limit=limit
+                None,
+                estado=estado,
+                anio=anio,
+                skip=skip,
+                limit=limit,
             )
 
         return await self.repo.listar_ligero(
@@ -171,6 +175,7 @@ class RequerimientoOirsService:
         self,
         usuario: Usuario,
         establecimiento_id: int | None = None,
+        anio: int | None = None,
     ) -> dict:
         """Totales para el panel, respetando el alcance del rol."""
         nombre_rol = usuario.rol.nombre_rol
@@ -184,11 +189,13 @@ class RequerimientoOirsService:
                 raise PermissionDenied(
                     "No tiene acceso a requerimientos de ese establecimiento"
                 )
-            fila = await self.repo.resumen(establecimiento_id)
+            fila = await self.repo.resumen(establecimiento_id, anio=anio)
         elif tiene_alcance_global(nombre_rol):
-            fila = await self.repo.resumen(None)
+            fila = await self.repo.resumen(None, anio=anio)
         else:
-            fila = await self.repo.resumen(usuario.id_establecimiento)
+            fila = await self.repo.resumen(
+                usuario.id_establecimiento, anio=anio
+            )
 
         total = fila["total"] or 0
         vencidos = fila["vencidos"] or 0
@@ -228,6 +235,7 @@ class RequerimientoOirsService:
         self,
         usuario: Usuario,
         establecimiento_id: int | None = None,
+        anio: int | None = None,
     ) -> list[dict]:
         """Métricas por establecimiento según el alcance del rol.
 
@@ -251,7 +259,7 @@ class RequerimientoOirsService:
             establecimiento_id = usuario.id_establecimiento
 
         filas = await self.repo.estadisticas_por_establecimiento(
-            establecimiento_id
+            establecimiento_id, anio=anio
         )
         for fila in filas:
             total = fila["total"] or 0

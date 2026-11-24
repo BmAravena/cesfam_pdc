@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useAuth } from '../../features/auth/useAuth'
+import { ANIO_ACTUAL, ANIOS_DISPONIBLES } from '../../lib/anios'
 import { hasRole } from '../../lib/auth'
 import { GESTION_ROLES } from '../../lib/roles'
 import { getErrorMessage } from '../../services/api'
@@ -18,6 +19,7 @@ export function DashboardPage() {
   const { user } = useAuth()
 
   const [resumen, setResumen] = useState<RequerimientoResumen | null>(null)
+  const [anio, setAnio] = useState<number | ''>(ANIO_ACTUAL)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,7 +29,7 @@ export function DashboardPage() {
     setCargando(true)
     setError(null)
 
-    obtenerResumenRequerimientos()
+    obtenerResumenRequerimientos(anio !== '' ? { anio } : {})
       .then((data) => {
         if (activo) setResumen(data)
       })
@@ -41,7 +43,7 @@ export function DashboardPage() {
     return () => {
       activo = false
     }
-  }, [])
+  }, [anio])
 
   const indicadores = [
     {
@@ -64,15 +66,34 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Panel de control
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          {hasRole(user, GESTION_ROLES)
-            ? 'Resumen operativo de la oficina OIRS para todos los establecimientos.'
-            : 'Resumen operativo de la oficina OIRS para tu establecimiento.'}
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            Panel de control
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            {hasRole(user, GESTION_ROLES)
+              ? 'Resumen operativo de la oficina OIRS para todos los establecimientos.'
+              : 'Resumen operativo de la oficina OIRS para tu establecimiento.'}
+          </p>
+        </div>
+        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Año
+          <select
+            value={anio}
+            onChange={(event) =>
+              setAnio(event.target.value ? Number(event.target.value) : '')
+            }
+            className="min-w-32 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+          >
+            <option value="">Todos los años</option>
+            {ANIOS_DISPONIBLES.map((opcion) => (
+              <option key={opcion} value={opcion}>
+                {opcion}
+              </option>
+            ))}
+          </select>
+        </label>
       </header>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

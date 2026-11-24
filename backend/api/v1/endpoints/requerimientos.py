@@ -110,17 +110,20 @@ async def listar_requerimientos(
     db: Annotated[AsyncSession, Depends(get_db)],
     establecimiento_id: Annotated[int | None, Query(gt=0)] = None,
     estado: Annotated[str | None, Query(max_length=30)] = None,
+    anio: Annotated[int | None, Query(ge=2000, le=2100)] = None,
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> list[RequerimientoOirsListItem]:
     """Funcionario Local: solo su centro. Roles globales: todos o filtro.
 
+    `anio` filtra por el año de `fecha_ingreso`; sin valor no se acota.
     Devuelve solo las columnas de la bandeja; el detalle se consulta por id.
     """
     return await RequerimientoOirsService(db).listar_autorizado_ligero(
         usuario,
         establecimiento_id=establecimiento_id,
         estado=estado,
+        anio=anio,
         skip=skip,
         limit=limit,
     )
@@ -137,11 +140,13 @@ async def resumen_requerimientos(
     ],
     db: Annotated[AsyncSession, Depends(get_db)],
     establecimiento_id: Annotated[int | None, Query(gt=0)] = None,
+    anio: Annotated[int | None, Query(ge=2000, le=2100)] = None,
 ) -> RequerimientoResumen:
     """Agrega en la base los indicadores que muestra el dashboard."""
     fila = await RequerimientoOirsService(db).resumen(
         usuario,
         establecimiento_id=establecimiento_id,
+        anio=anio,
     )
     return RequerimientoResumen(**fila)
 
@@ -157,11 +162,13 @@ async def estadisticas_requerimientos(
     ],
     db: Annotated[AsyncSession, Depends(get_db)],
     establecimiento_id: Annotated[int | None, Query(gt=0)] = None,
+    anio: Annotated[int | None, Query(ge=2000, le=2100)] = None,
 ) -> list[RequerimientoEstadisticaItem]:
     """Local: solo su centro. Comunal y Administrador: comparativo global."""
     filas = await RequerimientoOirsService(db).estadisticas(
         usuario,
         establecimiento_id=establecimiento_id,
+        anio=anio,
     )
     return [RequerimientoEstadisticaItem(**fila) for fila in filas]
 
@@ -176,13 +183,17 @@ async def resumen_reclamos(
         Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL))
     ],
     db: Annotated[AsyncSession, Depends(get_db)],
+    anio: Annotated[int | None, Query(ge=2000, le=2100)] = None,
 ) -> ReclamosResumen:
     """Cuenta requerimientos de tipo Reclamo según el alcance del rol.
 
     Los roles globales reciben el total comunal y una fila por establecimiento
     (incluidas las sedes con 0 reclamos); el Funcionario Local solo su sede.
     """
-    fila = await RequerimientoOirsService(db).resumen_reclamos(usuario)
+    fila = await RequerimientoOirsService(db).resumen_reclamos(
+        usuario,
+        anio=anio,
+    )
     return ReclamosResumen(**fila)
 
 

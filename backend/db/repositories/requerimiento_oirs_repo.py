@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 
 from backend.db.models.establecimiento import Establecimiento
 from backend.db.models.requerimiento_oirs import RequerimientoOirs
@@ -12,6 +12,17 @@ TIPO_RECLAMO = "Reclamo"
 def _rango_anio(anio: int) -> tuple[date, date]:
     """Límites [inicio, fin) del año calendario para `fecha_ingreso`."""
     return date(anio, 1, 1), date(anio + 1, 1, 1)
+
+
+def _filtrar_por_anio(query: Select, anio: int | None) -> Select:
+    """Acota por fecha_ingreso dentro del año indicado."""
+    if anio is None:
+        return query
+    inicio, fin = _rango_anio(anio)
+    return query.where(
+        RequerimientoOirs.fecha_ingreso >= inicio,
+        RequerimientoOirs.fecha_ingreso < fin,
+    )
 
 
 class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
@@ -66,18 +77,17 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
             query = query.where(req.id_establecimiento == id_establecimiento)
         if estado is not None:
             query = query.where(req.estado == estado)
-        if anio is not None:
-            inicio, fin = _rango_anio(anio)
-            query = query.where(
-                req.fecha_ingreso >= inicio,
-                req.fecha_ingreso < fin,
-            )
+        query = _filtrar_por_anio(query, anio)
 
         query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
         return [dict(row) for row in result.mappings().all()]
 
-    async def resumen(self, id_establecimiento: int | None = None) -> dict:
+    async def resumen(
+        self,
+        id_establecimiento: int | None = None,
+        anio: int | None = None,
+    ) -> dict:
         """Totales agregados (una fila) para el panel de control.
 
         Si `id_establecimiento` es None se agrega sobre todos los centros.
@@ -100,6 +110,7 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         )
         if id_establecimiento is not None:
             query = query.where(req.id_establecimiento == id_establecimiento)
+        query = _filtrar_por_anio(query, anio)
 
         result = await self.db.execute(query)
         return dict(result.mappings().one())
@@ -107,6 +118,7 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
     async def estadisticas_por_establecimiento(
         self,
         id_establecimiento: int | None = None,
+        anio: int | None = None,
     ) -> list[dict]:
         """Agrupa requerimientos por centro y calcula conteos por estado.
 
@@ -152,6 +164,7 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         )
         if id_establecimiento is not None:
             query = query.where(req.id_establecimiento == id_establecimiento)
+        query = _filtrar_por_anio(query, anio)
 
         result = await self.db.execute(query)
         return [dict(row) for row in result.mappings().all()]
