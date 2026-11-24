@@ -1,0 +1,17 @@
+# Contexto de build del backend: no necesita el frontend ni archivos locales.
+.git
+.gitignore
+.gitattributes
+.venv
+venv
+__pycache__
+*.py[cod]
+*.log
+.env
+.env.*
+frontend
+docs
+tests
+dist
+.vscode
+.idea
