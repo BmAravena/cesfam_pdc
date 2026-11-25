@@ -11,6 +11,7 @@ from backend.api.v1.schemas.encuesta_satisfaccion import (
     EncuestaSatisfaccionCreate,
 )
 from backend.core.encuestas import CLAVES_LEGACY, DIMENSIONES_ENCUESTA, ESCALA_MAX
+from backend.core.tiempo import a_hora_chile
 from backend.db.models.encuesta_satisfaccion import EncuestaSatisfaccion
 from backend.db.models.usuario import Usuario
 from backend.db.repositories.encuesta_satisfaccion_repo import (
@@ -211,10 +212,16 @@ class EncuestaSatisfaccionService:
             datos = fila["datos_documento"] or {}
             fecha = fila["fecha_respuesta"]
             centro_id = fila["id_establecimiento"]
+            # La base guarda UTC; el CSV se entrega en hora local de Chile.
+            fecha_local = (
+                a_hora_chile(fecha).strftime("%Y-%m-%d %H:%M:%S")
+                if fecha
+                else ""
+            )
             writer.writerow(
                 [
                     nombres.get(centro_id, f"Sede #{centro_id}"),
-                    fecha.isoformat(sep=" ") if fecha else "",
+                    fecha_local,
                 ]
                 + [
                     _valor_dimension(datos, dimension)

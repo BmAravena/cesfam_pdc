@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { descargarCsv } from '../../lib/csv'
+import { fechaChileISO, formatearFechaHora } from '../../lib/fechas'
 import { getErrorMessage } from '../../services/api'
 import {
   listarAuditoria,
@@ -10,13 +11,6 @@ import {
   listarEstablecimientos,
   type Establecimiento,
 } from '../../services/establecimientos'
-
-function formatearFechaHora(fecha: string): string {
-  return new Intl.DateTimeFormat('es-CL', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(fecha))
-}
 
 export function AuditoriaPage() {
   const [logs, setLogs] = useState<AuditoriaLog[]>([])
@@ -80,7 +74,7 @@ export function AuditoriaPage() {
 
   function handleExportar() {
     descargarCsv(
-      `auditoria-${new Date().toISOString().slice(0, 10)}`,
+      `auditoria-${fechaChileISO()}`,
       [
         ['Fecha y hora', 'Usuario', 'Establecimiento', 'Acción', 'IP origen'],
         ...logs.map((log) => [

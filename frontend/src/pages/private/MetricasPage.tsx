@@ -4,6 +4,7 @@ import { useAuth } from '../../features/auth/useAuth'
 import { useAniosRequerimientos } from '../../features/requerimientos/useAniosRequerimientos'
 import { ANIO_ACTUAL, rangoAnio } from '../../lib/anios'
 import { descargarCsv } from '../../lib/csv'
+import { fechaChileISO, formatearFechaHora } from '../../lib/fechas'
 import { hasRole } from '../../lib/auth'
 import { GESTION_ROLES } from '../../lib/roles'
 import { getErrorMessage } from '../../services/api'
@@ -58,13 +59,6 @@ const ESCALA_SATISFACCION = [
   'Satisfecho',
   'Muy satisfecho',
 ]
-
-function formatearFechaHora(fecha: string): string {
-  return new Intl.DateTimeFormat('es-CL', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(fecha))
-}
 
 export function MetricasPage() {
   const { user } = useAuth()
@@ -280,7 +274,7 @@ export function MetricasPage() {
         : 'mi-sede'
     const periodo = anio !== '' ? String(anio) : 'todos-los-anios'
     descargarCsv(
-      `metricas-${sufijo}-${periodo}-${new Date().toISOString().slice(0, 10)}`,
+      `metricas-${sufijo}-${periodo}-${fechaChileISO()}`,
       filas,
     )
   }
@@ -302,7 +296,7 @@ export function MetricasPage() {
       enlace.href = url
       enlace.download = `encuestas-satisfaccion-${
         centro ?? 'todas-las-sedes'
-      }-${periodo}-${new Date().toISOString().slice(0, 10)}.csv`
+      }-${periodo}-${fechaChileISO()}.csv`
       document.body.appendChild(enlace)
       enlace.click()
       enlace.remove()

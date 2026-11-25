@@ -1,6 +1,6 @@
 """Encuestas de satisfacción ciudadana y sus reportes agregados."""
 
-from datetime import date, datetime
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
@@ -12,6 +12,7 @@ from backend.api.v1.schemas.encuesta_satisfaccion import (
     EncuestaSatisfaccionResponse,
 )
 from backend.core.security import require_roles
+from backend.core.tiempo import ahora_chile
 from backend.db.models.usuario import Usuario
 from backend.db.session import get_db
 from backend.services.authz import ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL
@@ -94,7 +95,7 @@ async def exportar_encuestas(
         _ip_cliente(request),
     )
 
-    nombre = f"encuestas-satisfaccion-{datetime.now():%Y-%m-%d}.csv"
+    nombre = f"encuestas-satisfaccion-{ahora_chile():%Y-%m-%d}.csv"
     return Response(
         content=contenido,
         media_type="text/csv; charset=utf-8",

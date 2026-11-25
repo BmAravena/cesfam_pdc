@@ -9,6 +9,7 @@ from backend.api.v1.schemas.requerimiento_oirs import (
     RequerimientoOirsUpdate,
 )
 from backend.db.models.auditoria_log import AuditoriaLog
+from backend.core.tiempo import hoy_chile
 from backend.db.models.requerimiento_oirs import (
     ESTADOS_REQUERIMIENTO,
     RequerimientoOirs,
@@ -290,7 +291,7 @@ class RequerimientoOirsService:
         if await self.repo.get_by_codigo(codigo):
             raise ConflictError(f"El código '{codigo}' ya existe")
 
-        fecha_ingreso = data.fecha_ingreso or date.today()
+        fecha_ingreso = data.fecha_ingreso or hoy_chile()
         fecha_limite = data.fecha_limite or sumar_dias_habiles(
             fecha_ingreso, DIAS_HABILES_PLAZO
         )
@@ -325,7 +326,7 @@ class RequerimientoOirsService:
         if await self.repo.get_by_codigo(codigo):
             raise ConflictError(f"El código '{codigo}' ya existe")
 
-        fecha_ingreso = data.fecha_ingreso or date.today()
+        fecha_ingreso = data.fecha_ingreso or hoy_chile()
         fecha_limite = data.fecha_limite or sumar_dias_habiles(
             fecha_ingreso, DIAS_HABILES_PLAZO
         )
@@ -449,7 +450,7 @@ class RequerimientoOirsService:
     async def _generar_codigo(self) -> str:
         """Formato OIRS-AAAAMMDD-XXXXXX (20 caracteres, VARCHAR(20))."""
         for _ in range(5):
-            codigo = f"OIRS-{date.today():%Y%m%d}-{secrets.token_hex(3).upper()}"
+            codigo = f"OIRS-{hoy_chile():%Y%m%d}-{secrets.token_hex(3).upper()}"
             if await self.repo.get_by_codigo(codigo) is None:
                 return codigo
         raise BusinessRuleError("No se pudo generar un código de seguimiento único")

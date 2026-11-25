@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
+import { fechaChileISO } from '../../lib/fechas'
 import { getErrorMessage } from '../../services/api'
 import {
   consultarSeguimiento,
@@ -175,7 +176,7 @@ export function ConsultaPage() {
                 {resultado.fecha_respuesta && (
                   <p className="mt-2 text-xs text-slate-500">
                     Respondido el{' '}
-                    {formatearFecha(resultado.fecha_respuesta.slice(0, 10))}
+                    {formatearFecha(fechaChileISO(resultado.fecha_respuesta))}
                   </p>
                 )}
               </div>

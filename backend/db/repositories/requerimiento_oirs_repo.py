@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy import Select, func, select
 
 from backend.db.models.establecimiento import Establecimiento
+from backend.core.tiempo import hoy_chile
 from backend.db.models.requerimiento_oirs import RequerimientoOirs
 from backend.db.repositories.base import BaseRepository
 
@@ -93,7 +94,7 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         Si `id_establecimiento` es None se agrega sobre todos los centros.
         """
         req = RequerimientoOirs
-        hoy = date.today()
+        hoy = hoy_chile()
         finalizados = ("Respondido", "Cerrado", "Rechazado")
 
         query = select(
@@ -126,7 +127,7 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         cerrados ni rechazados) cuya fecha_limite ya pasó.
         """
         req = RequerimientoOirs
-        hoy = date.today()
+        hoy = hoy_chile()
         finalizados = ("Respondido", "Cerrado", "Rechazado")
 
         query = (
