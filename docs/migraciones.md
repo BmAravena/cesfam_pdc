@@ -73,6 +73,13 @@ Generar el SQL sin conectarse a la base (útil para revisión):
 |---|---|
 | `0001_initial` | Tablas `rol`, `establecimiento`, `usuario`, `requerimiento_oirs`, `auditoria_log`, `encuesta_satisfaccion`; índices, constraints y trigger append-only |
 | `0002_seed_base` | Roles base del sistema y CESFAM Padre Las Casas |
+| `10752746fbd4` | CESFAM adicionales de la comuna |
+| `c4a7e9b1d2f3` | Columnas `respuesta` y `fecha_respuesta` en requerimientos |
+| `943ca7222aa1` | Sincronización de esquema con la base en Brasil |
+| `e5f1a2b3c4d6` | `usuario.id_establecimiento` nullable para roles globales |
+| `b7c8d9e0f1a2` | Índice compuesto por establecimiento y fecha de encuestas |
+| `f9a0b1c2d3e4` | Vistas de lectura en horario de Chile |
+| `d4e5f6a7b8c9` | `establecimiento.direccion` y carga de direcciones |
 
 ## Esquema aislado (pruebas)
 

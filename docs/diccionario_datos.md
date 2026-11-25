@@ -36,6 +36,7 @@ Roles base: *Administrador del Sistema*, *Encargado OIRS Comunal*,
 | `id_establecimiento` | `SERIAL` | PK | Identificador del centro |
 | `nombre_centro` | `VARCHAR(120)` | NOT NULL | Nombre del centro |
 | `tipo_centro` | `VARCHAR(60)` | NOT NULL | Tipo (CESFAM, CECOSF, etc.) |
+| `direccion` | `VARCHAR(200)` | — | Dirección física del centro |
 
 **Propósito:** almacena los centros de salud de la red municipal. Es la
 dimensión que discrimina los datos entre sedes.
@@ -83,6 +84,8 @@ sobre cualquier establecimiento; `Funcionario Local` solo sobre el suyo.
 | `fecha_limite` | `DATE` | NOT NULL | Calculada: ingreso + 15 días hábiles |
 | `es_anonimo` | `BOOLEAN` | NOT NULL, DEFAULT `FALSE` | Indica si no se dejaron datos de contacto |
 | `id_establecimiento` | `INT` | FK → `establecimiento`, NOT NULL | Centro que recibe el caso |
+| `respuesta` | `TEXT` | — | Respuesta de OIRS al ciudadano |
+| `fecha_respuesta` | `TIMESTAMPTZ` | — | Momento en que se registró la respuesta (UTC) |
 
 **Estados válidos:** `Ingresado`, `En Proceso`, `Respondido`, `Cerrado`,
 `Rechazado`.

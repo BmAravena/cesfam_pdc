@@ -22,7 +22,9 @@ CREATE TABLE rol (
 CREATE TABLE establecimiento (
     id_establecimiento SERIAL PRIMARY KEY,
     nombre_centro VARCHAR(120) NOT NULL,
-    tipo_centro VARCHAR(60) NOT NULL
+    tipo_centro VARCHAR(60) NOT NULL,
+    -- Dirección física del centro (NULL para centros sin dirección registrada).
+    direccion VARCHAR(200)
 );
 
 -- 3. Tabla: usuario (Personal administrativo y de salud)
@@ -51,7 +53,10 @@ CREATE TABLE requerimiento_oirs (
     fecha_ingreso DATE NOT NULL DEFAULT CURRENT_DATE,
     fecha_limite DATE NOT NULL, -- Calculada en el servicio: fecha_ingreso + 15 días hábiles
     es_anonimo BOOLEAN NOT NULL DEFAULT FALSE,
-    id_establecimiento INT NOT NULL REFERENCES establecimiento(id_establecimiento) ON DELETE RESTRICT
+    id_establecimiento INT NOT NULL REFERENCES establecimiento(id_establecimiento) ON DELETE RESTRICT,
+    -- Respuesta de OIRS y momento en que se registró (UTC).
+    respuesta TEXT,
+    fecha_respuesta TIMESTAMPTZ
 );
 
 -- 5. Tabla: auditoria_log (Registro inalterable / append-only de acciones de usuario)
@@ -82,6 +87,8 @@ CREATE INDEX idx_usuario_establecimiento ON usuario(id_establecimiento);
 CREATE INDEX idx_req_establecimiento ON requerimiento_oirs(id_establecimiento);
 CREATE INDEX idx_req_estado_fecha ON requerimiento_oirs(estado, fecha_ingreso);
 CREATE INDEX idx_encuesta_establecimiento ON encuesta_satisfaccion(id_establecimiento);
+-- Índice compuesto para reportes de satisfacción por centro y rango de fechas.
+CREATE INDEX idx_encuesta_establecimiento_fecha ON encuesta_satisfaccion(id_establecimiento, fecha_respuesta);
 CREATE INDEX idx_auditoria_usuario ON auditoria_log(id_usuario);
 CREATE INDEX idx_auditoria_establecimiento ON auditoria_log(id_establecimiento);
 CREATE INDEX idx_auditoria_timestamp ON auditoria_log(timestamp);
@@ -117,3 +124,41 @@ $$;
 CREATE TRIGGER trg_auditoria_append_only
 BEFORE UPDATE OR DELETE ON auditoria_log
 FOR EACH ROW EXECUTE FUNCTION fn_auditoria_append_only();
+
+-- =========================================================================
+-- Vistas de lectura en horario de Chile
+-- Las tablas guardan los instantes en UTC (timestamptz). Estas vistas
+-- convierten la fecha al momento de consultarla, sin modificar los datos.
+-- =========================================================================
+CREATE VIEW requerimientos_hora_chile AS
+SELECT
+    id_requerimiento,
+    codigo_seguimiento,
+    tipo_solicitud,
+    detalle_solicitud,
+    estado,
+    respuesta,
+    fecha_respuesta AT TIME ZONE 'America/Santiago' AS fecha_respuesta_chile,
+    fecha_ingreso,
+    fecha_limite,
+    es_anonimo,
+    id_establecimiento
+FROM requerimiento_oirs;
+
+CREATE VIEW auditoria_hora_chile AS
+SELECT
+    id_log,
+    id_usuario,
+    id_establecimiento,
+    accion,
+    timestamp AT TIME ZONE 'America/Santiago' AS timestamp_chile,
+    ip_origen
+FROM auditoria_log;
+
+CREATE VIEW encuestas_hora_chile AS
+SELECT
+    id_encuesta,
+    id_establecimiento,
+    datos_documento,
+    fecha_respuesta AT TIME ZONE 'America/Santiago' AS fecha_respuesta_chile
+FROM encuesta_satisfaccion;
