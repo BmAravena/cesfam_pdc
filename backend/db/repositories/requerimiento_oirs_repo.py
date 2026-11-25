@@ -169,6 +169,27 @@ class RequerimientoOirsRepository(BaseRepository[RequerimientoOirs]):
         result = await self.db.execute(query)
         return [dict(row) for row in result.mappings().all()]
 
+    async def anios_disponibles(
+        self, id_establecimiento: int | None = None
+    ) -> list[int]:
+        """Años con al menos un requerimiento, de más reciente a más antiguo.
+
+        Si se indica `id_establecimiento`, solo considera ese centro.
+        """
+        req = RequerimientoOirs
+        anio = func.extract("year", req.fecha_ingreso)
+        query = (
+            select(anio.label("anio"))
+            .where(req.fecha_ingreso.is_not(None))
+            .distinct()
+            .order_by(anio.desc())
+        )
+        if id_establecimiento is not None:
+            query = query.where(req.id_establecimiento == id_establecimiento)
+
+        result = await self.db.execute(query)
+        return [int(fila["anio"]) for fila in result.mappings().all()]
+
     async def reclamos_por_establecimiento(
         self,
         id_establecimiento: int | None = None,

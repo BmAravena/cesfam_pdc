@@ -208,6 +208,16 @@ class RequerimientoOirsService:
         )
         return fila
 
+    async def anios_disponibles(self, usuario: Usuario) -> list[int]:
+        """Años con requerimientos registrados según el alcance del rol."""
+        nombre_rol = usuario.rol.nombre_rol
+
+        if tiene_alcance_global(nombre_rol):
+            return await self.repo.anios_disponibles(None)
+        if usuario.id_establecimiento is None:
+            return []
+        return await self.repo.anios_disponibles(usuario.id_establecimiento)
+
     async def resumen_reclamos(
         self, usuario: Usuario, anio: int | None = None
     ) -> dict:

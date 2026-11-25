@@ -198,6 +198,21 @@ async def resumen_reclamos(
 
 
 @router.get(
+    "/anios",
+    response_model=list[int],
+    summary="Años con requerimientos registrados",
+)
+async def anios_requerimientos(
+    usuario: Annotated[
+        Usuario, Depends(require_roles(ROL_ADMIN, ROL_COMUNAL, ROL_LOCAL))
+    ],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[int]:
+    """Años disponibles según el alcance del rol, del más reciente al más antiguo."""
+    return await RequerimientoOirsService(db).anios_disponibles(usuario)
+
+
+@router.get(
     "/{requerimiento_id}",
     response_model=RequerimientoOirsResponse,
     summary="Obtener el detalle de un requerimiento",

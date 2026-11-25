@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { useAuth } from '../../features/auth/useAuth'
-import { ANIO_ACTUAL, ANIOS_DISPONIBLES } from '../../lib/anios'
+import { useAniosRequerimientos } from '../../features/requerimientos/useAniosRequerimientos'
+import { ANIO_ACTUAL, rangoAnio } from '../../lib/anios'
 import { descargarCsv } from '../../lib/csv'
 import { hasRole } from '../../lib/auth'
 import { GESTION_ROLES } from '../../lib/roles'
@@ -68,6 +69,7 @@ function formatearFechaHora(fecha: string): string {
 export function MetricasPage() {
   const { user } = useAuth()
   const puedeFiltrarSede = hasRole(user, GESTION_ROLES)
+  const aniosDisponibles = useAniosRequerimientos()
 
   const [establecimientos, setEstablecimientos] = useState<Establecimiento[]>([])
   const [estadisticas, setEstadisticas] = useState<EstadisticaRequerimiento[]>([])
@@ -110,9 +112,10 @@ export function MetricasPage() {
 
     Promise.all([
       obtenerEstadisticasRequerimientos(params),
-      obtenerReporteEncuestas(
-        establecimientoId ? { establecimiento_id: establecimientoId } : {},
-      ),
+      obtenerReporteEncuestas({
+        ...(establecimientoId ? { establecimiento_id: establecimientoId } : {}),
+        ...(anio !== '' ? rangoAnio(anio) : {}),
+      }),
     ])
       .then(([estadisticasData, encuestasData]) => {
         if (!activo) return
@@ -288,14 +291,18 @@ export function MetricasPage() {
 
     try {
       const centro = sucursalActiva ?? (establecimientoId || null)
-      const params = centro ? { establecimiento_id: centro } : {}
+      const params = {
+        ...(centro ? { establecimiento_id: centro } : {}),
+        ...(anio !== '' ? rangoAnio(anio) : {}),
+      }
+      const periodo = anio !== '' ? String(anio) : 'todos-los-anios'
       const blob = await descargarReporteEncuestasCsv(params)
       const url = URL.createObjectURL(blob)
       const enlace = document.createElement('a')
       enlace.href = url
       enlace.download = `encuestas-satisfaccion-${
         centro ?? 'todas-las-sedes'
-      }-${new Date().toISOString().slice(0, 10)}.csv`
+      }-${periodo}-${new Date().toISOString().slice(0, 10)}.csv`
       document.body.appendChild(enlace)
       enlace.click()
       enlace.remove()
@@ -365,7 +372,7 @@ export function MetricasPage() {
               className="min-w-32 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             >
               <option value="">Todos los años</option>
-              {ANIOS_DISPONIBLES.map((opcion) => (
+              {aniosDisponibles.map((opcion) => (
                 <option key={opcion} value={opcion}>
                   {opcion}
                 </option>
@@ -526,7 +533,8 @@ export function MetricasPage() {
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
             Promedios de las encuestas respondidas, en escala de 1 a 5. Haz clic
-            en un CESFAM para ver su distribución individual.
+            en un CESFAM para ver su distribución individual. Periodo:{' '}
+            {anio !== '' ? anio : 'todos los años'}.
           </p>
         </div>
         <div className="overflow-x-auto">

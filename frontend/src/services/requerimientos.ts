@@ -130,6 +130,15 @@ export async function obtenerResumenReclamos(
 }
 
 /**
+ * GET /requerimientos/anios — años con requerimientos según el alcance del
+ * rol, del más reciente al más antiguo.
+ */
+export async function obtenerAniosRequerimientos(): Promise<number[]> {
+  const { data } = await api.get<number[]>('/requerimientos/anios')
+  return data
+}
+
+/**
  * GET /requerimientos — listado interno.
  *
  * El backend aplica el alcance del rol: un Funcionario Local solo recibe

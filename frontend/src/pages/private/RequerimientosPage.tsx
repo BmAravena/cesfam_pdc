@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 
 import { useAuth } from '../../features/auth/useAuth'
 import { ResponderModal } from '../../features/requerimientos/ResponderModal'
-import { ANIO_ACTUAL, ANIOS_DISPONIBLES } from '../../lib/anios'
+import { useAniosRequerimientos } from '../../features/requerimientos/useAniosRequerimientos'
+import { ANIO_ACTUAL } from '../../lib/anios'
 import { hasRole } from '../../lib/auth'
 import { GESTION_ROLES } from '../../lib/roles'
 import { getErrorMessage } from '../../services/api'
@@ -51,6 +52,7 @@ function etiquetaAccion(estado: EstadoRequerimiento): string {
 export function RequerimientosPage() {
   const { user } = useAuth()
   const puedeFiltrarSede = hasRole(user, GESTION_ROLES)
+  const aniosDisponibles = useAniosRequerimientos()
 
   const [requerimientos, setRequerimientos] = useState<RequerimientoListItem[]>(
     [],
@@ -158,6 +160,8 @@ export function RequerimientosPage() {
   const hayFiltros =
     estado !== '' || establecimientoId !== '' || anio !== ANIO_ACTUAL
 
+  const periodoTexto = anio !== '' ? String(anio) : 'todos los años'
+
   const reclamoSeleccionado =
     establecimientoId !== ''
       ? (reclamos?.por_establecimiento.find(
@@ -260,7 +264,7 @@ export function RequerimientosPage() {
             className="min-w-32 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
           >
             <option value="">Todos los años</option>
-            {ANIOS_DISPONIBLES.map((opcion) => (
+            {aniosDisponibles.map((opcion) => (
               <option key={opcion} value={opcion}>
                 {opcion}
               </option>
@@ -290,7 +294,8 @@ export function RequerimientosPage() {
             <p className="mt-0.5 text-xs text-slate-500">
               {puedeFiltrarSede
                 ? 'Total de reclamos a nivel comunal y desglose por CESFAM.'
-                : 'Total de reclamos registrados en tu CESFAM.'}
+                : 'Total de reclamos registrados en tu CESFAM.'}{' '}
+              Periodo: {periodoTexto}.
             </p>
           </div>
           <div className="flex items-baseline gap-2 rounded-xl bg-brand-50 px-4 py-2 ring-1 ring-brand-100">
@@ -298,7 +303,8 @@ export function RequerimientosPage() {
               {cargandoReclamos ? '—' : (reclamos?.total_reclamos ?? 0)}
             </span>
             <span className="text-xs font-medium text-brand-700">
-              {puedeFiltrarSede ? 'total comunal' : 'en tu CESFAM'}
+              {puedeFiltrarSede ? 'total comunal' : 'en tu CESFAM'} ·{' '}
+              {periodoTexto}
             </span>
           </div>
         </div>

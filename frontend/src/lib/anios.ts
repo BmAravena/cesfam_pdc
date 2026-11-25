@@ -12,3 +12,12 @@ export const ANIOS_DISPONIBLES: number[] = Array.from(
   { length: Math.max(ANIO_ACTUAL - 2020 + 1, 1) },
   (_, indice) => ANIO_ACTUAL - indice,
 )
+
+/**
+ * Rango de fechas ISO [desde, hasta] que cubre un año completo. Se usa para
+ * filtrar registros con fecha (encuestas) con los endpoints que aceptan
+ * `desde` y `hasta`.
+ */
+export function rangoAnio(anio: number): { desde: string; hasta: string } {
+  return { desde: `${anio}-01-01`, hasta: `${anio}-12-31` }
+}

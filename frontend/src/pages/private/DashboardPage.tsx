@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useAuth } from '../../features/auth/useAuth'
-import { ANIO_ACTUAL, ANIOS_DISPONIBLES } from '../../lib/anios'
+import { useAniosRequerimientos } from '../../features/requerimientos/useAniosRequerimientos'
+import { ANIO_ACTUAL } from '../../lib/anios'
 import { hasRole } from '../../lib/auth'
 import { GESTION_ROLES } from '../../lib/roles'
 import { getErrorMessage } from '../../services/api'
@@ -17,6 +18,7 @@ function formatearPorcentaje(valor: number): string {
 
 export function DashboardPage() {
   const { user } = useAuth()
+  const aniosDisponibles = useAniosRequerimientos()
 
   const [resumen, setResumen] = useState<RequerimientoResumen | null>(null)
   const [anio, setAnio] = useState<number | ''>(ANIO_ACTUAL)
@@ -87,7 +89,7 @@ export function DashboardPage() {
             className="min-w-32 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
           >
             <option value="">Todos los años</option>
-            {ANIOS_DISPONIBLES.map((opcion) => (
+            {aniosDisponibles.map((opcion) => (
               <option key={opcion} value={opcion}>
                 {opcion}
               </option>
