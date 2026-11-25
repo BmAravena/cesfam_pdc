@@ -45,8 +45,20 @@ async def crear_requerimiento(
     """El código de seguimiento y el plazo legal se generan en el servicio."""
     service = RequerimientoOirsService(db)
     ip_origen = request.client.host if request.client else "127.0.0.1"
+
+    datos = data.model_dump()
+    nombre = datos.pop("nombre_solicitante", None)
+    contacto = datos.pop("contacto_solicitante", None)
+
+    # Los datos de contacto se guardan al inicio del detalle para que OIRS
+    # pueda responder. El schema ya validó el formato del contacto.
+    detalle = datos["detalle_solicitud"].strip()
+    if not data.es_anonimo:
+        detalle = f"Solicitante: {nombre}\nContacto: {contacto}\n\n{detalle}"
+    datos["detalle_solicitud"] = detalle
+
     return await service.create(
-        RequerimientoOirsCreate(**data.model_dump()),
+        RequerimientoOirsCreate(**datos),
         ip_origen=ip_origen
     )
 

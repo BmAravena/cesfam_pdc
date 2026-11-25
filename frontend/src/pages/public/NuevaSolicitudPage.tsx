@@ -19,6 +19,19 @@ function formatearFecha(fecha: string): string {
   )
 }
 
+const CONTACTO_EMAIL =
+  /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,}$/
+const CONTACTO_TELEFONO = /^\+?[0-9][0-9\s().-]{6,19}$/
+
+/** Acepta un correo válido o un teléfono de al menos 8 dígitos. */
+function esContactoValido(valor: string): boolean {
+  const texto = valor.trim()
+  if (!texto) return false
+  if (texto.includes('@')) return CONTACTO_EMAIL.test(texto)
+  if (!CONTACTO_TELEFONO.test(texto)) return false
+  return (texto.match(/\d/g)?.length ?? 0) >= 8
+}
+
 export function NuevaSolicitudPage() {
   const [establecimientos, setEstablecimientos] = useState<Establecimiento[]>([])
   const [cargandoEstablecimientos, setCargandoEstablecimientos] = useState(true)
@@ -71,21 +84,29 @@ export function NuevaSolicitudPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+
+    if (!esAnonimo && !esContactoValido(contacto)) {
+      setError(
+        'Ingresa un correo válido o un teléfono de al menos 8 dígitos para poder contactarte.',
+      )
+      return
+    }
+
     setEnviando(true)
 
     try {
-      // El backend guarda el detalle como texto libre: para los ingresos
-      // identificados anteponemos los datos de contacto para que OIRS pueda
-      // responder. Lo ideal a futuro es agregar campos dedicados al esquema.
-      const detalleFinal = esAnonimo
-        ? detalle.trim()
-        : `Solicitante: ${nombre.trim()}\nContacto: ${contacto.trim()}\n\n${detalle.trim()}`
-
+      // El backend valida y antepone los datos de contacto al detalle.
       const data = await crearRequerimiento({
         tipo_solicitud: tipo,
-        detalle_solicitud: detalleFinal,
+        detalle_solicitud: detalle.trim(),
         es_anonimo: esAnonimo,
         id_establecimiento: Number(establecimientoId),
+        ...(esAnonimo
+          ? {}
+          : {
+              nombre_solicitante: nombre.trim(),
+              contacto_solicitante: contacto.trim(),
+            }),
       })
 
       setCreado(data)
@@ -322,6 +343,10 @@ export function NuevaSolicitudPage() {
                   onChange={(event) => setContacto(event.target.value)}
                   className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
                 />
+                <p className="mt-1.5 text-xs text-slate-500">
+                  Necesitamos un correo válido o un teléfono con al menos 8
+                  dígitos para poder contactarte.
+                </p>
               </div>
             </div>
           )}

@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from backend.api.v1.schemas.common import ORMModel
+from backend.core.contacto import es_contacto_valido
 
 EstadoRequerimiento = Literal[
     "Ingresado",
@@ -41,6 +42,37 @@ class RequerimientoOirsCreate(RequerimientoOirsBase):
 
 class RequerimientoOirsCreatePublico(RequerimientoOirsBase):
     """Payload del endpoint público: no permite fijar estado, código ni fechas."""
+
+    nombre_solicitante: str | None = Field(default=None, max_length=120)
+    contacto_solicitante: str | None = Field(default=None, max_length=120)
+
+    @model_validator(mode="after")
+    def validar_datos_contacto(self) -> "RequerimientoOirsCreatePublico":
+        """Exige nombre y un contacto válido cuando el ingreso no es anónimo."""
+        if self.es_anonimo:
+            self.nombre_solicitante = None
+            self.contacto_solicitante = None
+            return self
+
+        nombre = (self.nombre_solicitante or "").strip()
+        contacto = (self.contacto_solicitante or "").strip()
+
+        if not nombre:
+            raise ValueError(
+                "El nombre es obligatorio para ingresos no anónimos"
+            )
+        if not contacto:
+            raise ValueError(
+                "El correo o teléfono es obligatorio para ingresos no anónimos"
+            )
+        if not es_contacto_valido(contacto):
+            raise ValueError(
+                "Ingresa un correo válido o un teléfono de al menos 8 dígitos"
+            )
+
+        self.nombre_solicitante = nombre
+        self.contacto_solicitante = contacto
+        return self
 
 
 class RequerimientoOirsEstadoUpdate(ORMModel):

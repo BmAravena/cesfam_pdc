@@ -12,6 +12,8 @@ export interface RequerimientoPublicoPayload {
   detalle_solicitud: string
   es_anonimo: boolean
   id_establecimiento: number
+  nombre_solicitante?: string
+  contacto_solicitante?: string
 }
 
 export interface RequerimientoResponse extends RequerimientoPublicoPayload {
