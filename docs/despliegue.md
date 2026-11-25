@@ -172,6 +172,21 @@ Nginx usa el resolver interno de Docker y vuelve a resolver el nombre
 `backend`, por lo que no debería quedar apuntando a una IP antigua cuando el
 contenedor se recrea.
 
+### Documentación técnica
+
+FastAPI expone su documentación a través de Nginx (que solo reenvía `/api/`):
+
+- Swagger UI: `http://localhost/api/v1/docs` (o `http://localhost/docs`)
+- ReDoc: `http://localhost/api/v1/redoc` (o `http://localhost/redoc`)
+- Esquema OpenAPI: `http://localhost/api/v1/openapi.json`
+
+El botón **Authorize** de Swagger usa `POST /api/v1/auth/login`. Las rutas
+cortas `/docs`, `/redoc` y `/openapi.json` redirigen a las anteriores.
+
+Si en producción no se desean exponer, se pueden desactivar en
+`backend/main.py` pasando `docs_url=None`, `redoc_url=None` y
+`openapi_url=None` al crear la aplicación.
+
 ## 9. Diagnóstico rápido
 
 | Síntoma | Revisión |

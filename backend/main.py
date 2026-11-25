@@ -26,6 +26,11 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     lifespan=lifespan,
+    # Documentación técnica bajo el prefijo de la API. Nginx solo reenvía
+    # /api/ al backend, así que estas rutas funcionan a través del proxy.
+    docs_url=f"{settings.API_V1_STR}/docs",
+    redoc_url=f"{settings.API_V1_STR}/redoc",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
