@@ -147,6 +147,28 @@ analítica.
 
 ---
 
+## Zona horaria y vistas de lectura
+
+Las columnas de fecha y hora (`fecha_respuesta`, `timestamp`, etc.) son
+`TIMESTAMPTZ` y guardan los instantes en **UTC**. Ese es el valor correcto:
+conserva el momento exacto y no se rompe con el cambio de horario de verano.
+La aplicación y las exportaciones los convierten a `America/Santiago` para
+mostrarlos.
+
+El Table Editor de Supabase siempre muestra `TIMESTAMPTZ` en UTC. Para
+inspeccionar los datos en hora de Chile sin modificar las tablas, la migración
+`f9a0b1c2d3e4` crea estas vistas de solo lectura:
+
+| Vista | Columna en hora Chile |
+|---|---|
+| `requerimientos_hora_chile` | `fecha_respuesta_chile` |
+| `auditoria_hora_chile` | `timestamp_chile` |
+| `encuestas_hora_chile` | `fecha_respuesta_chile` |
+
+Las tablas base siguen siendo la fuente de verdad y permanecen en UTC.
+
+---
+
 ## Reglas de integridad transversales
 
 1. **Claves primarias** en las 6 entidades.
