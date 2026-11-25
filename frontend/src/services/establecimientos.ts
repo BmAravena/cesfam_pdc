@@ -4,11 +4,13 @@ export interface Establecimiento {
   id_establecimiento: number
   nombre_centro: string
   tipo_centro: string
+  direccion: string | null
 }
 
 export interface EstablecimientoPayload {
   nombre_centro: string
   tipo_centro: string
+  direccion: string | null
 }
 
 /** Catálogo público de establecimientos (GET /establecimientos). */

@@ -6,6 +6,7 @@ from backend.api.v1.schemas.common import ORMModel
 class EstablecimientoBase(ORMModel):
     nombre_centro: str = Field(min_length=1, max_length=120)
     tipo_centro: str = Field(min_length=1, max_length=60)
+    direccion: str | None = Field(default=None, max_length=200)
 
 
 class EstablecimientoCreate(EstablecimientoBase):
@@ -15,6 +16,7 @@ class EstablecimientoCreate(EstablecimientoBase):
 class EstablecimientoUpdate(ORMModel):
     nombre_centro: str | None = Field(default=None, min_length=1, max_length=120)
     tipo_centro: str | None = Field(default=None, min_length=1, max_length=60)
+    direccion: str | None = Field(default=None, max_length=200)
 
 
 class EstablecimientoResponse(EstablecimientoBase):

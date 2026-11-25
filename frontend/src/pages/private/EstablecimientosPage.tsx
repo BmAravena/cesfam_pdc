@@ -12,11 +12,13 @@ import {
 interface FormularioEstado {
   nombre_centro: string
   tipo_centro: string
+  direccion: string
 }
 
 const FORMULARIO_VACIO: FormularioEstado = {
   nombre_centro: '',
   tipo_centro: '',
+  direccion: '',
 }
 
 export function EstablecimientosPage() {
@@ -62,6 +64,7 @@ export function EstablecimientosPage() {
     setFormulario({
       nombre_centro: establecimiento.nombre_centro,
       tipo_centro: establecimiento.tipo_centro,
+      direccion: establecimiento.direccion ?? '',
     })
     setError(null)
     setExito(null)
@@ -76,13 +79,18 @@ export function EstablecimientosPage() {
     setExito(null)
 
     try {
+      const payload = {
+        ...formulario,
+        direccion: formulario.direccion.trim() || null,
+      }
+
       if (editandoId === null) {
-        const creado = await crearEstablecimiento(formulario)
+        const creado = await crearEstablecimiento(payload)
         setExito(`Establecimiento "${creado.nombre_centro}" creado.`)
       } else {
         const actualizado = await actualizarEstablecimiento(
           editandoId,
-          formulario,
+          payload,
         )
         setExito(
           `Establecimiento "${actualizado.nombre_centro}" actualizado.`,
@@ -207,6 +215,21 @@ export function EstablecimientosPage() {
                 className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
               />
             </label>
+            <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
+              Dirección
+              <input
+                maxLength={200}
+                value={formulario.direccion}
+                onChange={(event) =>
+                  setFormulario({
+                    ...formulario,
+                    direccion: event.target.value,
+                  })
+                }
+                placeholder="Almte. Barroso 365, Padre Las Casas"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+              />
+            </label>
           </div>
           <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
@@ -237,25 +260,26 @@ export function EstablecimientosPage() {
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-semibold">ID</th>
                 <th className="px-4 py-3 font-semibold">Nombre</th>
                 <th className="px-4 py-3 font-semibold">Tipo</th>
+                <th className="px-4 py-3 font-semibold">Dirección</th>
                 <th className="px-4 py-3 text-right font-semibold">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {cargando ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
                     Cargando establecimientos…
                   </td>
                 </tr>
               ) : establecimientos.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
                     No hay establecimientos registrados.
                   </td>
                 </tr>
@@ -270,6 +294,9 @@ export function EstablecimientosPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-700">
                       {establecimiento.tipo_centro}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">
+                      {establecimiento.direccion || '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">

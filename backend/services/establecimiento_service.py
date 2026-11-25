@@ -44,6 +44,7 @@ class EstablecimientoService:
         establecimiento = Establecimiento(
             nombre_centro=data.nombre_centro,
             tipo_centro=data.tipo_centro,
+            direccion=data.direccion,
         )
         return await self.repo.create(establecimiento)
 

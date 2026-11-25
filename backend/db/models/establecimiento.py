@@ -20,6 +20,7 @@ class Establecimiento(Base):
     id_establecimiento: Mapped[int] = mapped_column(primary_key=True)
     nombre_centro: Mapped[str] = mapped_column(String(120))
     tipo_centro: Mapped[str] = mapped_column(String(60))
+    direccion: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     # Ninguna de estas colecciones se expone en las respuestas de la API.
     # Con selectin, cargar un establecimiento traía TODOS sus usuarios,
