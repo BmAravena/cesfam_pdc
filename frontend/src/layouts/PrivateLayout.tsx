@@ -47,27 +47,11 @@ export function PrivateLayout() {
       <header className="border-b border-slate-200 bg-white">
         <div className="flex h-16 items-center justify-between gap-4 px-4 lg:px-6">
           <Link to="/panel" className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-lg bg-brand-600 text-white">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                className="size-5"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </span>
-            <span className="leading-tight">
-              <span className="block text-sm font-semibold text-slate-900">
-                OIRS · Panel interno
-              </span>
-              <span className="block text-xs text-slate-500">
-                Salud Padre Las Casas
-              </span>
-            </span>
+            <img
+              src="/images/logo cesfam.jpg"
+              alt="Departamento de Salud Municipal de Padre Las Casas"
+              className="h-12 w-auto max-w-[250px] object-contain"
+            />
           </Link>
 
           <div className="flex items-center gap-3">

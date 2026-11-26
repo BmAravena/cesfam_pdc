@@ -20,27 +20,11 @@ export function PublicLayout() {
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4">
           <Link to="/" className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-brand-600 text-white shadow-sm">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                className="size-6"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </span>
-            <span className="leading-tight">
-              <span className="block text-sm font-semibold text-slate-900">
-                OIRS Salud
-              </span>
-              <span className="block text-xs text-slate-500">
-                Padre Las Casas
-              </span>
-            </span>
+            <img
+              src="/images/logo cesfam.jpg"
+              alt="Departamento de Salud Municipal de Padre Las Casas"
+              className="h-12 w-auto max-w-[250px] object-contain"
+            />
           </Link>
 
           <nav
