@@ -27,6 +27,7 @@ export function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isSubmitting) return
     setError(null)
     setIsSubmitting(true)
 
@@ -59,9 +60,9 @@ export function LoginPage() {
             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
           </svg>
         </span>
-        <h1 className="mt-6 text-3xl font-semibold tracking-tight">
+        <p className="mt-6 text-3xl font-semibold tracking-tight">
           Panel interno OIRS
-        </h1>
+        </p>
         <p className="mt-3 text-sm leading-relaxed text-brand-100">
           Espacio exclusivo para funcionarios del CESFAM Padre Las Casas.
           Gestiona requerimientos, encuestas y auditoría según tu rol y
@@ -75,9 +76,9 @@ export function LoginPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
           Iniciar sesión
-        </h2>
+        </h1>
         <p className="mt-1 text-sm text-slate-600">
           Ingresa con tus credenciales institucionales.
         </p>
@@ -107,9 +108,11 @@ export function LoginPage() {
               autoComplete="email"
               autoFocus
               placeholder="nombre@cesfam.cl"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'login-error' : undefined}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
           </div>
 
@@ -126,14 +129,17 @@ export function LoginPage() {
               type="password"
               required
               autoComplete="current-password"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'login-error' : undefined}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
           </div>
 
           {error && (
             <p
+              id="login-error"
               role="alert"
               className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
             >
@@ -143,8 +149,8 @@ export function LoginPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={isSubmitting}
+            className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
           >
             {isSubmitting ? 'Ingresando…' : 'Ingresar al panel'}
           </button>

@@ -158,7 +158,18 @@ export function DashboardPage() {
         </div>
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <p className="sr-only" role="status">
+        {cargando
+          ? 'Cargando indicadores…'
+          : error
+            ? 'No se pudieron cargar los indicadores.'
+            : 'Indicadores actualizados.'}
+      </p>
+
+      <section
+        aria-busy={cargando}
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
         {indicadores.map((indicador) => (
           <article
             key={indicador.etiqueta}

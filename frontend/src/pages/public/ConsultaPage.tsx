@@ -32,12 +32,15 @@ export function ConsultaPage() {
     null,
   )
   const [error, setError] = useState<string | null>(null)
-  const [buscando, setBuscando] = useState(codigoInicial !== '')
+  const [buscando, setBuscando] = useState(false)
+  const [cargandoInicial, setCargandoInicial] = useState(codigoInicial !== '')
 
   useEffect(() => {
     if (!codigoInicial) return
 
     let activo = true
+
+    setCargandoInicial(true)
 
     consultarSeguimiento(codigoInicial)
       .then((data) => {
@@ -47,7 +50,7 @@ export function ConsultaPage() {
         if (activo) setError(getErrorMessage(requestError))
       })
       .finally(() => {
-        if (activo) setBuscando(false)
+        if (activo) setCargandoInicial(false)
       })
 
     return () => {
@@ -58,7 +61,7 @@ export function ConsultaPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const valor = codigo.trim()
-    if (!valor) return
+    if (!valor || buscando) return
 
     setBuscando(true)
     setError(null)
@@ -103,17 +106,21 @@ export function ConsultaPage() {
               }}
               placeholder="Ej: OIRS-20261110-A1B2C3"
               autoComplete="off"
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-sm text-slate-900 shadow-sm uppercase placeholder:font-sans placeholder:normal-case placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-sm text-slate-900 shadow-sm uppercase placeholder:font-sans placeholder:normal-case placeholder:text-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
           </div>
           <button
             type="submit"
-            disabled={buscando}
-            className="h-fit self-end rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+            aria-busy={buscando || cargandoInicial}
+            className="h-fit self-end rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 sm:self-auto"
           >
             {buscando ? 'Consultando…' : 'Consultar'}
           </button>
         </form>
+
+        <p className="sr-only" role="status">
+          {cargandoInicial ? 'Consultando el estado del requerimiento…' : ''}
+        </p>
 
         {error && (
           <div
@@ -124,7 +131,8 @@ export function ConsultaPage() {
           </div>
         )}
 
-        {resultado && (
+        <div aria-live="polite">
+          {resultado && (
           <article className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -187,7 +195,8 @@ export function ConsultaPage() {
               en la consulta pública.
             </p>
           </article>
-        )}
+          )}
+        </div>
 
         <p className="mt-8 border-t border-slate-200 pt-4 text-xs leading-relaxed text-slate-500">
           ¿Aún no tienes un código?{' '}

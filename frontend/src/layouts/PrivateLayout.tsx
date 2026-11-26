@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
+import { SkipLink } from '../components/SkipLink'
 import { useAuth } from '../features/auth/useAuth'
 import { hasRole } from '../lib/auth'
 import { ADMIN_ONLY, GESTION_ROLES } from '../lib/roles'
@@ -42,6 +43,7 @@ export function PrivateLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-100">
+      <SkipLink />
       <header className="border-b border-slate-200 bg-white">
         <div className="flex h-16 items-center justify-between gap-4 px-4 lg:px-6">
           <Link to="/panel" className="flex items-center gap-3">
@@ -130,7 +132,11 @@ export function PrivateLayout() {
           </p>
         </aside>
 
-        <main className="min-w-0 flex-1 p-4 lg:p-8">
+        <main
+          id="contenido-principal"
+          tabIndex={-1}
+          className="min-w-0 flex-1 p-4 focus:outline-none lg:p-8"
+        >
           <Outlet />
         </main>
       </div>

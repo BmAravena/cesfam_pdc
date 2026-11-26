@@ -61,6 +61,35 @@ src/
 └── main.tsx
 ```
 
+## Accesibilidad
+
+El frontend apunta a **WCAG 2.2 AA** y se verificó pensando en lectores de
+pantalla como NVDA. Incluye:
+
+- **Cambio de ruta anunciado**: `RouteAnnouncer` actualiza `document.title` y
+  mueve el foco al `<h1>` de la página nueva.
+- **Enlace "Saltar al contenido principal"** al inicio de cada layout.
+- **Foco visible** global y respeto a `prefers-reduced-motion`.
+- **Diálogos accesibles**: foco inicial, cierre con `Escape`, trampa de foco y
+  devolución del foco al abridor (`ResponderModal`).
+- **Tablas** con `<caption>`, `th scope="col"` y región desplazable enfocable.
+- **Formularios** con `aria-invalid` y `aria-describedby` para errores y textos
+  de ayuda.
+- **Mensajes dinámicos** con `role="alert"`, `role="status"` o `aria-live`.
+- **Contraste ajustado**: sin `text-slate-400` sobre fondos claros.
+
+### Verificación con NVDA
+
+1. Al cargar, el primer `Tab` debe anunciar "Saltar al contenido principal".
+2. Navega con `Enter` entre secciones: NVDA debe leer el `<h1>` de la página
+   nueva y el título de la pestaña debe cambiar.
+3. En Requerimientos, abre "Gestionar": el foco entra al diálogo, `Tab` no sale
+   de él, `Escape` cierra y el foco vuelve al botón de origen.
+4. En Métricas o Auditoría, recorre una tabla con `Ctrl+Alt+flechas`: NVDA debe
+   anunciar el encabezado de cada columna.
+5. Envía un formulario con datos inválidos: al volver al campo, NVDA debe leer
+   el error asociado.
+
 ## Autenticación
 
 1. `POST /api/v1/auth/login` recibe `username` y `password` como

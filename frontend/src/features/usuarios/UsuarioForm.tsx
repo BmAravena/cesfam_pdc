@@ -65,6 +65,7 @@ export function UsuarioForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (enviando) return
     setError(null)
 
     const rutNormalizado = normalizarRutValido(rut)
@@ -141,11 +142,19 @@ export function UsuarioForm({
               maxLength={14}
               placeholder="12345678-9"
               title="Ej: 12345678-9. Se valida el dígito verificador."
+              aria-invalid={
+                error?.startsWith('RUT inválido') ? true : undefined
+              }
+              aria-describedby={
+                error?.startsWith('RUT inválido')
+                  ? 'usuario-rut-ayuda usuario-form-error'
+                  : 'usuario-rut-ayuda'
+              }
               value={rut}
               onChange={(event) => setRut(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p id="usuario-rut-ayuda" className="mt-1 text-xs text-slate-500">
               Se valida el dígito verificador (módulo 11).
             </p>
           </div>
@@ -183,11 +192,15 @@ export function UsuarioForm({
               minLength={8}
               maxLength={128}
               autoComplete="new-password"
+              aria-describedby="usuario-password-ayuda"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p
+              id="usuario-password-ayuda"
+              className="mt-1 text-xs text-slate-500"
+            >
               Mínimo 8 caracteres, al menos una mayúscula y un carácter
               especial.
             </p>
@@ -216,31 +229,49 @@ export function UsuarioForm({
           </div>
 
           <div>
-            <label
-              htmlFor="usuario-establecimiento"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
-            >
-              Establecimiento
-            </label>
-            <select
-              id="usuario-establecimiento"
-              required={requiereEstablecimiento}
-              disabled={!requiereEstablecimiento}
-              value={establecimientoId}
-              onChange={(event) => setEstablecimientoId(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-            >
-              <option value="">Selecciona un establecimiento</option>
-              {establecimientos.map((establecimiento) => (
-                <option
-                  key={establecimiento.id_establecimiento}
-                  value={establecimiento.id_establecimiento}
+            {requiereEstablecimiento ? (
+              <>
+                <label
+                  htmlFor="usuario-establecimiento"
+                  className="mb-1.5 block text-sm font-medium text-slate-700"
                 >
-                  {establecimiento.nombre_centro}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-slate-500">
+                  Establecimiento
+                </label>
+                <select
+                  id="usuario-establecimiento"
+                  required
+                  aria-describedby="usuario-establecimiento-ayuda"
+                  value={establecimientoId}
+                  onChange={(event) =>
+                    setEstablecimientoId(event.target.value)
+                  }
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+                >
+                  <option value="">Selecciona un establecimiento</option>
+                  {establecimientos.map((establecimiento) => (
+                    <option
+                      key={establecimiento.id_establecimiento}
+                      value={establecimiento.id_establecimiento}
+                    >
+                      {establecimiento.nombre_centro}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              <>
+                <p className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Establecimiento
+                </p>
+                <p className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-600">
+                  Todas las sedes
+                </p>
+              </>
+            )}
+            <p
+              id="usuario-establecimiento-ayuda"
+              className="mt-1 text-xs text-slate-500"
+            >
               {requiereEstablecimiento
                 ? 'Obligatorio: el Funcionario Local queda amarrado a esta sede.'
                 : 'El Encargado OIRS Comunal tiene alcance sobre todas las sedes; no requiere establecimiento.'}
@@ -250,6 +281,7 @@ export function UsuarioForm({
 
         {error && (
           <p
+            id="usuario-form-error"
             role="alert"
             className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
           >
@@ -261,15 +293,14 @@ export function UsuarioForm({
           <button
             type="button"
             onClick={onCancel}
-            disabled={enviando}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-60"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            disabled={enviando}
-            className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={enviando}
+            className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
           >
             {enviando ? 'Creando…' : 'Crear usuario'}
           </button>

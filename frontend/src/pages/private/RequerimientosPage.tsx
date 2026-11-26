@@ -144,6 +144,7 @@ export function RequerimientosPage() {
   }
 
   async function abrirDetalle(requerimiento: RequerimientoListItem) {
+    if (cargandoDetalle !== null) return
     setExito(null)
     setError(null)
     setCargandoDetalle(requerimiento.id_requerimiento)
@@ -192,12 +193,13 @@ export function RequerimientosPage() {
           <button
             type="button"
             onClick={() => {
+              if (cargando) return
               setError(null)
               setExito(null)
               setRecargar((valor) => valor + 1)
             }}
-            disabled={cargando}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={cargando}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >
             Actualizar
           </button>
@@ -310,7 +312,7 @@ export function RequerimientosPage() {
         </div>
 
         {cargandoReclamos ? (
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-slate-500" role="status">
             Calculando reclamos…
           </p>
         ) : errorReclamos ? (
@@ -357,7 +359,7 @@ export function RequerimientosPage() {
                       className={[
                         'truncate text-xs',
                         sinReclamos
-                          ? 'text-slate-400'
+                          ? 'text-slate-600'
                           : 'font-medium text-slate-700',
                       ].join(' ')}
                     >
@@ -366,7 +368,7 @@ export function RequerimientosPage() {
                     <span
                       className={[
                         'shrink-0 text-sm font-semibold',
-                        sinReclamos ? 'text-slate-400' : 'text-slate-900',
+                        sinReclamos ? 'text-slate-600' : 'text-slate-900',
                       ].join(' ')}
                     >
                       {item.total_reclamos}
@@ -380,7 +382,7 @@ export function RequerimientosPage() {
                 No hay establecimientos para mostrar.
               </p>
             )}
-            <p className="mt-3 text-[11px] text-slate-400">
+            <p className="mt-3 text-[11px] text-slate-600">
               Se incluyen las sedes sin reclamos registrados.
             </p>
           </>
@@ -406,8 +408,17 @@ export function RequerimientosPage() {
       )}
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Tabla de requerimientos"
+          aria-busy={cargando}
+          tabIndex={0}
+        >
           <table className="w-full min-w-[1000px] text-left text-sm">
+            <caption className="sr-only">
+              Bandeja de requerimientos ciudadanos
+            </caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th scope="col" className="px-4 py-3 font-semibold">
@@ -487,8 +498,10 @@ export function RequerimientosPage() {
                       <button
                         type="button"
                         onClick={() => abrirDetalle(requerimiento)}
-                        disabled={cargandoDetalle === requerimiento.id_requerimiento}
-                        className="rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-busy={
+                          cargandoDetalle === requerimiento.id_requerimiento
+                        }
+                        className="rounded-lg border border-brand-200 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-50"
                       >
                         {cargandoDetalle === requerimiento.id_requerimiento
                           ? 'Cargando…'
@@ -504,7 +517,7 @@ export function RequerimientosPage() {
       </div>
 
       {!cargando && requerimientos.length > 0 && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500" aria-live="polite">
           Mostrando {requerimientos.length} requerimiento
           {requerimientos.length === 1 ? '' : 's'}
           {establecimientoId

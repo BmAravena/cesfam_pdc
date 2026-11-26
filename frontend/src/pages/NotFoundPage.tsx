@@ -2,7 +2,11 @@ import { Link } from 'react-router-dom'
 
 export function NotFoundPage() {
   return (
-    <section className="mx-auto flex w-full max-w-xl flex-col items-center px-4 py-20 text-center">
+    <main
+      id="contenido-principal"
+      tabIndex={-1}
+      className="mx-auto flex w-full max-w-xl flex-col items-center px-4 py-20 text-center focus:outline-none"
+    >
       <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">
         Error 404
       </p>
@@ -18,6 +22,6 @@ export function NotFoundPage() {
       >
         Ir al portal ciudadano
       </Link>
-    </section>
+    </main>
   )
 }

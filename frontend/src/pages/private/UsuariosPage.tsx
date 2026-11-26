@@ -101,6 +101,8 @@ export function UsuariosPage() {
   }
 
   async function handleToggleActivo(usuario: Usuario) {
+    if (accionandoId !== null) return
+
     if (usuario.activo) {
       const confirmado = window.confirm(
         `¿Dar de baja a ${usuario.nombre}? No podrá iniciar sesión, pero su historial se conserva.`,
@@ -149,18 +151,23 @@ export function UsuariosPage() {
             establecimiento.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setMostrarFormulario((valor) => !valor)
-            setError(null)
-            setExito(null)
-          }}
-          disabled={cargandoCatalogos || errorCatalogos !== null}
-          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {mostrarFormulario ? 'Cerrar formulario' : 'Nuevo usuario'}
-        </button>
+        {cargandoCatalogos ? (
+          <p className="text-sm text-slate-500" role="status">
+            Cargando catálogos…
+          </p>
+        ) : errorCatalogos ? null : (
+          <button
+            type="button"
+            onClick={() => {
+              setMostrarFormulario((valor) => !valor)
+              setError(null)
+              setExito(null)
+            }}
+            className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
+          >
+            {mostrarFormulario ? 'Cerrar formulario' : 'Nuevo usuario'}
+          </button>
+        )}
       </header>
 
       {errorCatalogos && (
@@ -227,8 +234,17 @@ export function UsuariosPage() {
           </label>
         </div>
 
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Tabla de usuarios"
+          aria-busy={cargando}
+          tabIndex={0}
+        >
           <table className="w-full min-w-[900px] text-left text-sm">
+            <caption className="sr-only">
+              Cuentas de usuario del sistema
+            </caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th scope="col" className="px-4 py-3 font-semibold">
@@ -323,27 +339,28 @@ export function UsuariosPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleActivo(usuario)}
-                          disabled={esPropio || ocupado}
-                          title={
-                            esPropio
-                              ? 'No puedes desactivar tu propio usuario'
-                              : undefined
-                          }
-                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                            usuario.activo
-                              ? 'border border-red-200 text-red-700 hover:bg-red-50'
-                              : 'border border-brand-200 text-brand-700 hover:bg-brand-50'
-                          }`}
-                        >
-                          {ocupado
-                            ? 'Procesando…'
-                            : usuario.activo
-                              ? 'Dar de baja'
-                              : 'Reactivar'}
-                        </button>
+                        {esPropio ? (
+                          <span className="text-xs font-medium text-slate-500">
+                            Tu cuenta
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActivo(usuario)}
+                            aria-busy={ocupado}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              usuario.activo
+                                ? 'border border-red-200 text-red-700 hover:bg-red-50'
+                                : 'border border-brand-200 text-brand-700 hover:bg-brand-50'
+                            }`}
+                          >
+                            {ocupado
+                              ? 'Procesando…'
+                              : usuario.activo
+                                ? 'Dar de baja'
+                                : 'Reactivar'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )

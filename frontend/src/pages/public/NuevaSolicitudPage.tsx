@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { getErrorMessage } from '../../services/api'
@@ -49,8 +49,10 @@ export function NuevaSolicitudPage() {
 
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [errorCampo, setErrorCampo] = useState<'contacto' | null>(null)
   const [creado, setCreado] = useState<RequerimientoResponse | null>(null)
   const [copiado, setCopiado] = useState(false)
+  const successRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
     let activo = true
@@ -81,14 +83,28 @@ export function NuevaSolicitudPage() {
     setRecargar((valor) => valor + 1)
   }
 
+  useEffect(() => {
+    if (creado) successRef.current?.focus()
+  }, [creado])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (enviando) return
     setError(null)
+    setErrorCampo(null)
+
+    if (establecimientos.length === 0) {
+      setError(
+        'No hay establecimientos disponibles. Usa "Reintentar" para volver a cargarlos.',
+      )
+      return
+    }
 
     if (!esAnonimo && !esContactoValido(contacto)) {
       setError(
         'Ingresa un correo válido o un teléfono de al menos 8 dígitos para poder contactarte.',
       )
+      setErrorCampo('contacto')
       return
     }
 
@@ -110,7 +126,7 @@ export function NuevaSolicitudPage() {
       })
 
       setCreado(data)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      window.scrollTo({ top: 0, behavior: 'auto' })
     } catch (requestError) {
       setError(getErrorMessage(requestError))
     } finally {
@@ -158,7 +174,11 @@ export function NuevaSolicitudPage() {
             </svg>
           </span>
 
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">
+          <h1
+            ref={successRef}
+            tabIndex={-1}
+            className="mt-5 text-2xl font-semibold tracking-tight text-slate-900 focus:outline-none"
+          >
             Requerimiento ingresado
           </h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -186,6 +206,9 @@ export function NuevaSolicitudPage() {
             >
               {copiado ? 'Código copiado' : 'Copiar código'}
             </button>
+            <span className="sr-only" role="status">
+              {copiado ? 'Código copiado al portapapeles.' : ''}
+            </span>
             <Link
               to={`/consulta?codigo=${encodeURIComponent(creado.codigo_seguimiento)}`}
               className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
@@ -268,10 +291,9 @@ export function NuevaSolicitudPage() {
               id="establecimiento"
               name="establecimiento"
               required
-              disabled={cargandoEstablecimientos || establecimientos.length === 0}
               value={establecimientoId}
               onChange={(event) => setEstablecimientoId(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none disabled:bg-slate-100"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             >
               <option value="">
                 {cargandoEstablecimientos
@@ -339,11 +361,26 @@ export function NuevaSolicitudPage() {
                   type="text"
                   required
                   placeholder="ejemplo@correo.cl o +56 9 1234 5678"
+                  aria-invalid={errorCampo === 'contacto' ? true : undefined}
+                  aria-describedby={
+                    errorCampo === 'contacto'
+                      ? 'contacto-ayuda form-error'
+                      : 'contacto-ayuda'
+                  }
                   value={contacto}
-                  onChange={(event) => setContacto(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+                  onChange={(event) => {
+                    setContacto(event.target.value)
+                    if (errorCampo === 'contacto') {
+                      setError(null)
+                      setErrorCampo(null)
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
                 />
-                <p className="mt-1.5 text-xs text-slate-500">
+                <p
+                  id="contacto-ayuda"
+                  className="mt-1.5 text-xs text-slate-500"
+                >
                   Necesitamos un correo válido o un teléfono con al menos 8
                   dígitos para poder contactarte.
                 </p>
@@ -364,18 +401,20 @@ export function NuevaSolicitudPage() {
               required
               minLength={10}
               rows={6}
+              aria-describedby="detalle-ayuda"
               value={detalle}
               onChange={(event) => setDetalle(event.target.value)}
               placeholder="Describe lo ocurrido con el mayor detalle posible: fecha, lugar, personas involucradas y lo que esperas como respuesta."
-              className="w-full resize-y rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+              className="w-full resize-y rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p id="detalle-ayuda" className="mt-1.5 text-xs text-slate-500">
               Mínimo 10 caracteres. No incluyas datos sensibles de terceros.
             </p>
           </div>
 
           {error && (
             <p
+              id="form-error"
               role="alert"
               className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
             >
@@ -392,8 +431,8 @@ export function NuevaSolicitudPage() {
             </Link>
             <button
               type="submit"
-              disabled={enviando || establecimientos.length === 0}
-              className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-busy={enviando}
+              className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
             >
               {enviando ? 'Enviando…' : 'Ingresar requerimiento'}
             </button>

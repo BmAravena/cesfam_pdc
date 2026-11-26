@@ -72,6 +72,7 @@ export function EstablecimientosPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (guardando) return
     if (!formulario) return
 
     setGuardando(true)
@@ -108,6 +109,8 @@ export function EstablecimientosPage() {
   }
 
   async function handleEliminar(establecimiento: Establecimiento) {
+    if (accionandoId !== null) return
+
     const confirmado = window.confirm(
       `¿Eliminar "${establecimiento.nombre_centro}"? Solo es posible si no tiene usuarios, requerimientos ni encuestas asociadas.`,
     )
@@ -238,15 +241,14 @@ export function EstablecimientosPage() {
                 setFormulario(null)
                 setEditandoId(null)
               }}
-              disabled={guardando}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-60"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={guardando}
-              className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-busy={guardando}
+              className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
             >
               {guardando
                 ? 'Guardando…'
@@ -259,15 +261,24 @@ export function EstablecimientosPage() {
       )}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Tabla de establecimientos"
+          aria-busy={cargando}
+          tabIndex={0}
+        >
           <table className="w-full min-w-[760px] text-left text-sm">
+            <caption className="sr-only">
+              Establecimientos de la red OIRS comunal
+            </caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-4 py-3 font-semibold">ID</th>
-                <th className="px-4 py-3 font-semibold">Nombre</th>
-                <th className="px-4 py-3 font-semibold">Tipo</th>
-                <th className="px-4 py-3 font-semibold">Dirección</th>
-                <th className="px-4 py-3 text-right font-semibold">Acciones</th>
+                <th scope="col" className="px-4 py-3 font-semibold">ID</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Nombre</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Tipo</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Dirección</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -310,10 +321,10 @@ export function EstablecimientosPage() {
                         <button
                           type="button"
                           onClick={() => handleEliminar(establecimiento)}
-                          disabled={
+                          aria-busy={
                             accionandoId === establecimiento.id_establecimiento
                           }
-                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50"
                         >
                           {accionandoId === establecimiento.id_establecimiento
                             ? 'Eliminando…'

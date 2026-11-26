@@ -1,5 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
+import { SkipLink } from '../components/SkipLink'
+
 const currentYear = new Date().getFullYear()
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -14,6 +16,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function PublicLayout() {
   return (
     <div className="flex min-h-screen flex-col">
+      <SkipLink />
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4">
           <Link to="/" className="flex items-center gap-3">
@@ -70,7 +73,11 @@ export function PublicLayout() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main
+        id="contenido-principal"
+        tabIndex={-1}
+        className="flex-1 focus:outline-none"
+      >
         <Outlet />
       </main>
 

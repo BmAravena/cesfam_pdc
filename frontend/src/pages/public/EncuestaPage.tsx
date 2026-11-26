@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import { getErrorMessage } from '../../services/api'
@@ -73,6 +73,7 @@ export function EncuestaPage() {
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [enviada, setEnviada] = useState(false)
+  const successRef = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
     let activo = true
@@ -103,12 +104,17 @@ export function EncuestaPage() {
     setRecargar((valor) => valor + 1)
   }
 
+  useEffect(() => {
+    if (enviada) successRef.current?.focus()
+  }, [enviada])
+
   function responder(clave: DimensionEncuesta, valor: number) {
     setRespuestas((actual) => ({ ...actual, [clave]: valor }))
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (enviando) return
     setError(null)
 
     if (!establecimientoId) {
@@ -139,7 +145,7 @@ export function EncuestaPage() {
         },
       })
       setEnviada(true)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      window.scrollTo({ top: 0, behavior: 'auto' })
     } catch (requestError) {
       setError(getErrorMessage(requestError))
     } finally {
@@ -172,7 +178,11 @@ export function EncuestaPage() {
               <path d="m5 12 5 5L20 7" />
             </svg>
           </span>
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">
+          <h1
+            ref={successRef}
+            tabIndex={-1}
+            className="mt-5 text-2xl font-semibold tracking-tight text-slate-900 focus:outline-none"
+          >
             Gracias por tu opinión
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
@@ -243,10 +253,13 @@ export function EncuestaPage() {
               id="establecimiento"
               name="establecimiento"
               required
-              disabled={cargandoEstablecimientos || establecimientos.length === 0}
+              aria-invalid={error && !establecimientoId ? true : undefined}
+              aria-describedby={
+                error && !establecimientoId ? 'encuesta-error' : undefined
+              }
               value={establecimientoId}
               onChange={(event) => setEstablecimientoId(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none disabled:bg-slate-100"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             >
               <option value="">
                 {cargandoEstablecimientos
@@ -268,12 +281,24 @@ export function EncuestaPage() {
             {DIMENSIONES.map((dimension) => (
               <fieldset
                 key={dimension.clave}
+                aria-describedby={`dim-${dimension.clave}-ayuda`}
+                aria-invalid={
+                  error?.startsWith('Falta responder') &&
+                  respuestas[dimension.clave] < 1
+                    ? true
+                    : undefined
+                }
                 className="rounded-xl border border-slate-200 p-4"
               >
                 <legend className="px-1 text-sm font-semibold text-slate-900">
                   {dimension.titulo}
                 </legend>
-                <p className="mt-1 text-xs text-slate-500">{dimension.ayuda}</p>
+                <p
+                  id={`dim-${dimension.clave}-ayuda`}
+                  className="mt-1 text-xs text-slate-500"
+                >
+                  {dimension.ayuda}
+                </p>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
                   {ESCALA.map((opcion) => {
@@ -283,7 +308,7 @@ export function EncuestaPage() {
                       <label
                         key={opcion.valor}
                         className={[
-                          'flex cursor-pointer flex-col items-center gap-1 rounded-lg border px-2 py-2 text-center text-xs font-medium transition-colors',
+                          'flex cursor-pointer flex-col items-center gap-1 rounded-lg border px-2 py-2 text-center text-xs font-medium transition-colors focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-1',
                           activo
                             ? 'border-brand-500 bg-brand-50 text-brand-800 ring-1 ring-brand-300'
                             : 'border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:bg-brand-50/40',
@@ -330,13 +355,14 @@ export function EncuestaPage() {
               placeholder="Si lo deseas, cuéntanos qué podríamos mejorar."
               className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
-            <p className="mt-1 text-right text-xs text-slate-400">
+            <p className="mt-1 text-right text-xs text-slate-600">
               {comentario.length}/1000
             </p>
           </div>
 
           {error && (
             <div
+              id="encuesta-error"
               role="alert"
               className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
             >
@@ -350,10 +376,8 @@ export function EncuestaPage() {
             </p>
             <button
               type="submit"
-              disabled={
-                enviando || cargandoEstablecimientos || establecimientos.length === 0
-              }
-              className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              aria-busy={enviando}
+              className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
             >
               {enviando ? 'Enviando…' : 'Enviar encuesta'}
             </button>

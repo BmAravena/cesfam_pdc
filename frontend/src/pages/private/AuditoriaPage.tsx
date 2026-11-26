@@ -73,6 +73,7 @@ export function AuditoriaPage() {
   )
 
   function handleExportar() {
+    if (cargando) return
     descargarCsv(
       `auditoria-${fechaChileISO()}`,
       [
@@ -156,16 +157,18 @@ export function AuditoriaPage() {
         <button
           type="button"
           onClick={handleExportar}
-          disabled={cargando || logs.length === 0}
-          className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-busy={cargando}
+          className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50"
         >
           Exportar CSV
         </button>
         <button
           type="button"
-          onClick={() => setRecargar((valor) => valor + 1)}
-          disabled={cargando}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => {
+            if (!cargando) setRecargar((valor) => valor + 1)
+          }}
+          aria-busy={cargando}
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
         >
           Actualizar
         </button>
@@ -181,15 +184,24 @@ export function AuditoriaPage() {
       )}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Tabla de auditoría"
+          aria-busy={cargando}
+          tabIndex={0}
+        >
           <table className="w-full min-w-[860px] text-left text-sm">
+            <caption className="sr-only">
+              Bitácora de auditoría de acciones del sistema
+            </caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-4 py-3 font-semibold">Fecha y hora</th>
-                <th className="px-4 py-3 font-semibold">Usuario</th>
-                <th className="px-4 py-3 font-semibold">Establecimiento</th>
-                <th className="px-4 py-3 font-semibold">Acción</th>
-                <th className="px-4 py-3 font-semibold">IP origen</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Fecha y hora</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Usuario</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Establecimiento</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Acción</th>
+                <th scope="col" className="px-4 py-3 font-semibold">IP origen</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

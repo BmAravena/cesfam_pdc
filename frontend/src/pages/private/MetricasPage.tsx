@@ -226,6 +226,7 @@ export function MetricasPage() {
   )
 
   function handleExportar() {
+    if (cargando) return
     const filas: (string | number | null)[][] = [
       ['Cumplimiento de requerimientos por CESFAM'],
       [
@@ -280,6 +281,7 @@ export function MetricasPage() {
   }
 
   async function handleExportarEncuestas() {
+    if (cargando || exportando) return
     setError(null)
     setExportando(true)
 
@@ -376,26 +378,26 @@ export function MetricasPage() {
           <button
             type="button"
             onClick={handleExportar}
-            disabled={
-              cargando || (estadisticas.length === 0 && encuestas.length === 0)
-            }
-            className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={cargando}
+            className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50"
           >
             Exportar CSV
           </button>
           <button
             type="button"
             onClick={handleExportarEncuestas}
-            disabled={cargando || exportando || encuestas.length === 0}
-            className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={exportando}
+            className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition-colors hover:bg-brand-50"
           >
             {exportando ? 'Exportando…' : 'Exportar satisfacción (CSV)'}
           </button>
           <button
             type="button"
-            onClick={() => setRecargar((valor) => valor + 1)}
-            disabled={cargando}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => {
+              if (!cargando) setRecargar((valor) => valor + 1)
+            }}
+            aria-busy={cargando}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >
             Actualizar
           </button>
@@ -447,19 +449,28 @@ export function MetricasPage() {
             pasó como vencidos.
           </p>
         </div>
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Tabla de cumplimiento de requerimientos"
+          aria-busy={cargando}
+          tabIndex={0}
+        >
           <table className="w-full min-w-[980px] text-left text-sm">
+            <caption className="sr-only">
+              Cumplimiento de requerimientos por CESFAM
+            </caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-4 py-3 font-semibold">CESFAM</th>
-                <th className="px-4 py-3 text-right font-semibold">Total</th>
-                <th className="px-4 py-3 text-right font-semibold">Ingresados</th>
-                <th className="px-4 py-3 text-right font-semibold">En proceso</th>
-                <th className="px-4 py-3 text-right font-semibold">Respondidos</th>
-                <th className="px-4 py-3 text-right font-semibold">Cerrados</th>
-                <th className="px-4 py-3 text-right font-semibold">Rechazados</th>
-                <th className="px-4 py-3 text-right font-semibold">Vencidos</th>
-                <th className="px-4 py-3 text-right font-semibold">Tasa</th>
+                <th scope="col" className="px-4 py-3 font-semibold">CESFAM</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Total</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Ingresados</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">En proceso</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Respondidos</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Cerrados</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Rechazados</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Vencidos</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Tasa</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -531,15 +542,25 @@ export function MetricasPage() {
             {anio !== '' ? anio : 'todos los años'}.
           </p>
         </div>
-        <div className="overflow-x-auto">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label="Tabla de satisfacción ciudadana"
+          aria-busy={cargando}
+          tabIndex={0}
+        >
           <table className="w-full min-w-[820px] text-left text-sm">
+            <caption className="sr-only">
+              Promedios de satisfacción ciudadana por CESFAM
+            </caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-4 py-3 font-semibold">CESFAM</th>
-                <th className="px-4 py-3 text-right font-semibold">Respuestas</th>
+                <th scope="col" className="px-4 py-3 font-semibold">CESFAM</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Respuestas</th>
                 {DIMENSIONES_SATISFACCION.map((dimension) => (
                   <th
                     key={dimension.clave}
+                    scope="col"
                     className="px-4 py-3 text-right font-semibold"
                   >
                     {dimension.etiqueta}
@@ -734,7 +755,7 @@ export function MetricasPage() {
       </section>
 
       {!cargando && estadisticas.length > 0 && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-500" aria-live="polite">
           {establecimientoId
             ? `Mostrando ${estadisticas.length} centro filtrado.`
             : puedeFiltrarSede
