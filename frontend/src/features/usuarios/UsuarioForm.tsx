@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 
-import { getErrorMessage } from '../../services/api'
+import { getErrorMessage, getFieldErrorMessage } from '../../services/api'
 import type { Establecimiento } from '../../services/establecimientos'
 import type { Rol } from '../../services/roles'
 import { crearUsuario, type Usuario } from '../../services/usuarios'
@@ -42,6 +42,7 @@ export function UsuarioForm({
   )
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [errorCampo, setErrorCampo] = useState<'rut' | 'email' | null>(null)
 
   const rolSeleccionado = rolesDisponibles.find(
     (rol) => String(rol.id_rol) === rolId,
@@ -67,10 +68,12 @@ export function UsuarioForm({
     event.preventDefault()
     if (enviando) return
     setError(null)
+    setErrorCampo(null)
 
     const rutNormalizado = normalizarRutValido(rut)
     if (!rutNormalizado) {
       setError('RUT inválido. Revisa el dígito verificador.')
+      setErrorCampo('rut')
       return
     }
 
@@ -89,7 +92,15 @@ export function UsuarioForm({
       })
       onCreated(usuario)
     } catch (requestError) {
+      const emailError = getFieldErrorMessage(requestError, 'email')
+      if (emailError) {
+        setError(emailError)
+        setErrorCampo('email')
+        return
+      }
+
       setError(getErrorMessage(requestError))
+      setErrorCampo(null)
     } finally {
       setEnviando(false)
     }
@@ -142,16 +153,20 @@ export function UsuarioForm({
               maxLength={14}
               placeholder="12345678-9"
               title="Ej: 12345678-9. Se valida el dígito verificador."
-              aria-invalid={
-                error?.startsWith('RUT inválido') ? true : undefined
-              }
+              aria-invalid={errorCampo === 'rut' ? true : undefined}
               aria-describedby={
-                error?.startsWith('RUT inválido')
+                errorCampo === 'rut'
                   ? 'usuario-rut-ayuda usuario-form-error'
                   : 'usuario-rut-ayuda'
               }
               value={rut}
-              onChange={(event) => setRut(event.target.value)}
+              onChange={(event) => {
+                setRut(event.target.value)
+                if (errorCampo === 'rut') {
+                  setError(null)
+                  setErrorCampo(null)
+                }
+              }}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
             <p id="usuario-rut-ayuda" className="mt-1 text-xs text-slate-500">
@@ -172,10 +187,34 @@ export function UsuarioForm({
               required
               maxLength={120}
               autoComplete="off"
+              aria-invalid={errorCampo === 'email' ? true : undefined}
+              aria-describedby={
+                errorCampo === 'email'
+                  ? 'usuario-email-ayuda usuario-email-error'
+                  : 'usuario-email-ayuda'
+              }
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value)
+                if (errorCampo === 'email') {
+                  setError(null)
+                  setErrorCampo(null)
+                }
+              }}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 focus:outline-none"
             />
+            <p id="usuario-email-ayuda" className="mt-1 text-xs text-slate-500">
+              Se verifica el formato y que el dominio pueda recibir correos.
+            </p>
+            {errorCampo === 'email' && error && (
+              <p
+                id="usuario-email-error"
+                role="alert"
+                className="mt-1 text-xs font-medium text-red-700"
+              >
+                {error}
+              </p>
+            )}
           </div>
 
           <div>
@@ -279,7 +318,7 @@ export function UsuarioForm({
           </div>
         </div>
 
-        {error && (
+        {error && errorCampo !== 'email' && (
           <p
             id="usuario-form-error"
             role="alert"

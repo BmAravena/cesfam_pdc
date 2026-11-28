@@ -19,26 +19,40 @@ export interface ValidationIssue {
 
 interface FastApiErrorBody {
   detail?: string | ValidationIssue[]
+  /** Campo del formulario al que corresponde el error, si aplica. */
+  campo?: string
 }
 
 export class ApiError extends Error {
   readonly status: number | null
   readonly issues: ValidationIssue[]
+  readonly campo: string | null
 
-  constructor(message: string, status: number | null, issues: ValidationIssue[] = []) {
+  constructor(
+    message: string,
+    status: number | null,
+    issues: ValidationIssue[] = [],
+    campo: string | null = null,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.issues = issues
+    this.campo = campo
   }
 }
 
-function parseErrorBody(data: unknown): { message: string; issues: ValidationIssue[] } {
+function parseErrorBody(data: unknown): {
+  message: string
+  issues: ValidationIssue[]
+  campo: string | null
+} {
   const body = data as FastApiErrorBody | undefined
   const detail = body?.detail
+  const campo = typeof body?.campo === 'string' ? body.campo : null
 
   if (typeof detail === 'string') {
-    return { message: detail, issues: [] }
+    return { message: detail, issues: [], campo }
   }
 
   if (Array.isArray(detail)) {
@@ -49,10 +63,10 @@ function parseErrorBody(data: unknown): { message: string; issues: ValidationIss
     const message =
       issues.map((issue) => issue.msg).join(' · ') ||
       'Los datos enviados no son válidos.'
-    return { message, issues }
+    return { message, issues, campo }
   }
 
-  return { message: 'Ocurrió un error inesperado.', issues: [] }
+  return { message: 'Ocurrió un error inesperado.', issues: [], campo }
 }
 
 function normalizeError(error: AxiosError<FastApiErrorBody>): ApiError {
@@ -64,8 +78,8 @@ function normalizeError(error: AxiosError<FastApiErrorBody>): ApiError {
     return new ApiError(message, null)
   }
 
-  const { message, issues } = parseErrorBody(error.response.data)
-  return new ApiError(message, error.response.status, issues)
+  const { message, issues, campo } = parseErrorBody(error.response.data)
+  return new ApiError(message, error.response.status, issues, campo)
 }
 
 const api: AxiosInstance = axios.create({
@@ -116,6 +130,22 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message
   if (error instanceof Error) return error.message
   return 'Ocurrió un error inesperado.'
+}
+
+/**
+ * Mensaje de validación asociado a un campo del formulario, si lo hay.
+ * Cubre tanto el `campo` explícito del backend como los errores de Pydantic
+ * (`issues[].loc`, por ejemplo ["body", "email"]).
+ */
+export function getFieldErrorMessage(
+  error: unknown,
+  field: string,
+): string | null {
+  if (!(error instanceof ApiError)) return null
+  if (error.campo === field) return error.message
+
+  const issue = error.issues.find((item) => item.loc.includes(field))
+  return issue ? issue.msg : null
 }
 
 export default api

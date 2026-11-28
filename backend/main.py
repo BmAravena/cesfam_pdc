@@ -13,6 +13,7 @@ from backend.services.exceptions import (
     ConflictError,
     NotFoundError,
     PermissionDenied,
+    ServiceError,
 )
 
 
@@ -49,33 +50,28 @@ async def health() -> dict[str, str]:
 # --- Traducción de excepciones de negocio a respuestas HTTP ---
 
 
+def _error_response(exc: ServiceError, status_code: int) -> JSONResponse:
+    content: dict[str, str] = {"detail": str(exc)}
+    if exc.campo:
+        content["campo"] = exc.campo
+    return JSONResponse(status_code=status_code, content=content)
+
+
 @app.exception_handler(NotFoundError)
 async def not_found_handler(request: Request, exc: NotFoundError):
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"detail": str(exc)},
-    )
+    return _error_response(exc, status.HTTP_404_NOT_FOUND)
 
 
 @app.exception_handler(ConflictError)
 async def conflict_handler(request: Request, exc: ConflictError):
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": str(exc)},
-    )
+    return _error_response(exc, status.HTTP_400_BAD_REQUEST)
 
 
 @app.exception_handler(BusinessRuleError)
 async def business_rule_handler(request: Request, exc: BusinessRuleError):
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": str(exc)},
-    )
+    return _error_response(exc, status.HTTP_400_BAD_REQUEST)
 
 
 @app.exception_handler(PermissionDenied)
 async def permission_denied_handler(request: Request, exc: PermissionDenied):
-    return JSONResponse(
-        status_code=status.HTTP_403_FORBIDDEN,
-        content={"detail": str(exc)},
-    )
+    return _error_response(exc, status.HTTP_403_FORBIDDEN)

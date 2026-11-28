@@ -3,6 +3,11 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.v1.schemas.usuario import UsuarioCreate, UsuarioUpdate
+from backend.core.email_dominio import (
+    DominioNoVerificableError,
+    DominioSinRegistrosError,
+    verificar_dominio_correo,
+)
 from backend.core.rut import RutInvalido, limpiar_rut, validar_rut
 from backend.core.security import hash_password, verify_password
 from backend.db.models.establecimiento import Establecimiento
@@ -76,6 +81,23 @@ class UsuarioService:
 
         return establecimiento_id
 
+    async def _verificar_dominio_email(self, email: str) -> None:
+        """Comprueba que el dominio del correo tenga MX/A válidos."""
+        try:
+            await verificar_dominio_correo(email)
+        except DominioSinRegistrosError as exc:
+            raise BusinessRuleError(
+                "El dominio del correo no puede recibir mensajes. "
+                "Revisa que esté bien escrito.",
+                campo="email",
+            ) from exc
+        except DominioNoVerificableError as exc:
+            raise BusinessRuleError(
+                "No pudimos verificar el dominio del correo ahora. "
+                "Intenta nuevamente en unos segundos.",
+                campo="email",
+            ) from exc
+
     async def create(
         self,
         data: UsuarioCreate,
@@ -93,9 +115,14 @@ class UsuarioService:
         )
 
         if await self.repo.get_by_email(data.email):
-            raise ConflictError("El email ya está registrado")
+            raise ConflictError(
+                "Este correo ya está registrado en el sistema.",
+                campo="email",
+            )
         if await self.repo.get_by_rut(data.rut):
             raise ConflictError("El RUT ya está registrado")
+
+        await self._verificar_dominio_email(str(data.email))
 
         usuario = Usuario(
             rut=data.rut,
@@ -145,9 +172,15 @@ class UsuarioService:
                 usuario.fecha_baja = datetime.now(timezone.utc)
 
         nuevo_email = cambios.get("email")
-        if nuevo_email and nuevo_email != usuario.email:
-            if await self.repo.get_by_email(str(nuevo_email)):
-                raise ConflictError("El email ya está registrado")
+        if nuevo_email and str(nuevo_email) != usuario.email:
+            existente = await self.repo.get_by_email(str(nuevo_email))
+            # La unicidad excluye al propio usuario que se está editando.
+            if existente is not None and existente.id_usuario != usuario_id:
+                raise ConflictError(
+                    "Este correo ya está registrado en el sistema.",
+                    campo="email",
+                )
+            await self._verificar_dominio_email(str(nuevo_email))
 
         if "rut" in cambios:
             nuevo_rut = cambios["rut"]

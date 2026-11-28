@@ -1,11 +1,33 @@
 import re
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import EmailStr, Field, field_validator
+from email_validator import EmailNotValidError, validate_email
+from pydantic import AfterValidator, EmailStr, Field, field_validator
 from pydantic_core import PydanticCustomError
 
 from backend.api.v1.schemas.common import ORMModel
 from backend.core.rut import RutInvalido, validar_rut
+
+
+def _normalizar_email_entrada(value: str) -> str:
+    """Valida el formato y normaliza, con un mensaje de error en español.
+
+    No consulta DNS: la verificación de MX/A se hace en el servicio porque
+    es una operación de red asíncrona.
+    """
+    try:
+        return validate_email(value, check_deliverability=False).normalized
+    except EmailNotValidError as exc:
+        raise PydanticCustomError(
+            "email_invalido",
+            "Ingresa un correo electrónico válido (ejemplo: nombre@dominio.cl).",
+        ) from exc
+
+
+# Tipo solo para entradas: el response usa EmailStr para no fallar al
+# serializar correos antiguos.
+EmailEntrada = Annotated[str, AfterValidator(_normalizar_email_entrada)]
 
 
 def _validar_fortaleza_password(value: str) -> str:
@@ -39,6 +61,8 @@ class UsuarioBase(ORMModel):
 
 class UsuarioCreate(UsuarioBase):
     rut: str
+    # Se revalida aquí para entregar un mensaje de formato en español.
+    email: EmailEntrada
     id_establecimiento: int | None = Field(default=None, gt=0)
     # Contraseña en claro solo en la entrada; se hashea en el servicio.
     password: str = Field(min_length=8, max_length=128)
@@ -62,7 +86,7 @@ class UsuarioUpdate(ORMModel):
     # bloquear usuarios antiguos cuyo RUT no cumpla la regla actual.
     rut: str | None = None
     nombre: str | None = Field(default=None, min_length=1, max_length=120)
-    email: EmailStr | None = None
+    email: EmailEntrada | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128)
     id_rol: int | None = Field(default=None, gt=0)
     id_establecimiento: int | None = Field(default=None, gt=0)

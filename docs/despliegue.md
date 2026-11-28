@@ -51,6 +51,14 @@ Variables principales:
 | `WEB_CONCURRENCY` | Workers de Uvicorn, por defecto `1` |
 | `FORWARDED_ALLOW_IPS` | IPs de proxy confiables para `X-Forwarded-For` |
 | `VITE_API_URL` | URL de API compilada en el frontend |
+| `EMAIL_DNS_TIMEOUT` | Segundos de espera por consulta DNS (por defecto `3.0`) |
+| `EMAIL_DNS_CACHE_TTL` | Segundos que se cachea el resultado por dominio (por defecto `3600`) |
+| `EMAIL_VERIFICACION_FAIL_OPEN` | `true` permite crear usuarios si DNS falla transitoriamente; por defecto `false` (fail-closed) |
+
+La verificación de dominios de correo de cuentas internas requiere que el
+contenedor pueda resolver DNS (MX/A). Si hay una caída de DNS en el entorno,
+`EMAIL_VERIFICACION_FAIL_OPEN=true` evita bloquear el alta de usuarios; es un
+interruptor temporal, no el comportamiento recomendado.
 
 El archivo `.env` está ignorado por Git y no se copia dentro de las imágenes.
 
